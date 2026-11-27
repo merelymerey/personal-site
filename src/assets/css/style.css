@@ -908,7 +908,8 @@ main > h1::after {
   border-color: var(--gold);
 }
 
-.timeline h2 {
+.timeline h2,
+.timeline h3 {
   color: var(--accent);
   font-size: 0.875rem;
   letter-spacing: 0.08em;
@@ -1162,6 +1163,158 @@ main > section:not(.card) > h2::before {
   opacity: 0.55;
 }
 
+/* ---------------------------------------------------------------- landing page */
+
+main.landing {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.band {
+  margin-top: 0;
+  padding-top: var(--space-7);
+  padding-bottom: var(--space-7);
+}
+
+.band-tint {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.band h2 {
+  font-size: clamp(1.6rem, 1.2rem + 1.8vw, 2.25rem);
+  letter-spacing: -0.02em;
+}
+
+.band > .container > h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.7rem;
+  background: var(--gold);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  vertical-align: 0.14em;
+}
+
+.band .lead {
+  margin-bottom: var(--space-5);
+}
+
+.band h3 {
+  font-size: 1.2rem;
+}
+
+.band-more {
+  margin: var(--space-5) 0 0;
+}
+
+.band-more .icon {
+  margin-left: 0.5em;
+}
+
+/* Hero band: full width, the panel look is dropped. */
+.band-hero {
+  position: relative;
+  overflow: hidden;
+  padding-top: var(--space-7);
+  padding-bottom: calc(var(--space-7) + 1.75rem);
+  background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+  color: var(--hero-text);
+}
+
+.band-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  height: 1.75rem;
+  background: url("../img/ornament.svg") center bottom / 5.25rem 1.75rem repeat-x;
+  opacity: 0.85;
+}
+
+.band-hero .hero {
+  overflow: visible;
+  margin-top: 0;
+  padding: 0 var(--space-4);
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.band-hero .hero::after {
+  content: none;
+}
+
+.band-hero .hero h1 {
+  font-size: clamp(2.4rem, 1.4rem + 5vw, 4.25rem);
+  line-height: 1.05;
+}
+
+.band-hero .role {
+  font-size: 1.15rem;
+}
+
+.band-hero .lead {
+  font-size: 1.2rem;
+}
+
+/* Closing call to action. */
+.band-cta {
+  position: relative;
+  padding-bottom: calc(var(--space-7) + 1.5rem);
+  background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+  color: var(--hero-text);
+  text-align: center;
+}
+
+.band-cta .lead {
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--hero-muted);
+}
+
+.band-cta .actions {
+  align-items: stretch;
+  justify-content: center;
+}
+
+.band-cta .button {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--hero-ink);
+}
+
+.band-cta .button:hover {
+  background: #ffd64d;
+  border-color: #ffd64d;
+  color: var(--hero-ink);
+}
+
+.band-cta .button-secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.75);
+  color: var(--hero-text);
+}
+
+.band-cta .button-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #ffffff;
+  color: var(--hero-text);
+}
+
+.band-cta :focus-visible {
+  outline-color: var(--gold);
+}
+
+.landing + .site-footer {
+  margin-top: 0;
+}
+
 /* ---------------------------------------------------------------- wide screens */
 
 @media (min-width: 760px) {
@@ -1280,6 +1433,39 @@ main > section:not(.card) > h2::before {
   }
 }
 
+@media (min-width: 760px) {
+  .band {
+    padding-top: calc(var(--space-7) + var(--space-5));
+    padding-bottom: calc(var(--space-7) + var(--space-5));
+  }
+
+  .band-hero {
+    padding-top: calc(var(--space-7) + var(--space-6));
+    padding-bottom: calc(var(--space-7) + var(--space-6) + 1.75rem);
+  }
+
+  .band-hero .hero {
+    padding: 0 var(--space-5);
+  }
+
+  .band-hero .hero .avatar {
+    width: 11rem;
+    height: 11rem;
+  }
+
+  .band-cta {
+    padding-bottom: calc(var(--space-7) + var(--space-5) + 1.5rem);
+  }
+
+  .band .projects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .band .project-featured {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ---------------------------------------------------------------- motion */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1372,6 +1558,17 @@ main > section:not(.card) > h2::before {
 
   .card:hover .tile {
     transform: translateY(-2px) rotate(-4deg);
+  }
+
+  .reveal-on [data-reveal] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal-on [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
   }
 }
 

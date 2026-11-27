@@ -5,7 +5,8 @@
 ```
 /                       language gateway (redirects to /kk/, /ru/ or /en/)
 ├── /kk/  /ru/  /en/    one directory per language, identical structure
-│   ├── index.html        Home: introduction, quick links            FR-01
+│   ├── index.html        Home (landing): hero, then a band per      FR-01
+│   │                     section, then a call to action
 │   ├── education.html    University, school, learning portfolio     FR-02, FR-03
 │   ├── projects.html     Projects with safe links                   FR-05
 │   ├── activities.html   Interests, achievements, extracurricular,  FR-04, FR-06
@@ -41,6 +42,8 @@ The site is a **statically generated multi-page site**.
 - **Presentation layer**: `build.py` (Python standard library only) contains the page templates and renders `dist/<lang>/<page>.html`. It first checks that every subject, project, page and status in `shared.json` has its texts in all three languages (and the reverse for subjects and projects), fills the placeholders, builds into a temporary directory and replaces `dist/` only when the whole build succeeded. `src/assets/css/style.css` holds all styling; `src/assets/js/main.js` holds behaviour and reads the limits from the `minlength` / `maxlength` attributes.
 - **Server layer**: `src/contact.php` is the only dynamic file. It validates a POST, appends the message to a file in a directory closed by `.htaccess`, and answers with JSON (script request) or a small localised HTML page (plain form post). It holds no texts or limits: it loads `dist/contact.config.php`, which `build.py` generates from the content files as one PHP array (languages, default language, GitHub URL, the five length limits, result-page texts per language). The root `.htaccess` denies web access to that file. So the page, the script, the server and the prose all take a limit from the one value in `shared.json`.
 - **Deployment**: the contents of `dist/` are uploaded to `htdocs/` on InfinityFree.
+
+**Landing page.** After the author saw the first version, the home page was rebuilt as a landing page: a full-width hero, then one full-width band each for projects, education and activities, and a closing call to action. The bands reuse the same rendering functions as the detail pages (`project_cards`, `education_timeline`, `activity_cards`), so the content is written once. The detail pages remain for the learning portfolio, the tools list, the form and the privacy statement.
 
 **Page structure.** Each page is: skip link, header (site name, primary navigation, language switch), `main` with one `h1` and sections, footer. The header and footer are produced by one function, so navigation is identical on all 15 pages.
 

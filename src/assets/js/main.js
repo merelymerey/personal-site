@@ -214,9 +214,29 @@
     });
   };
 
+  /* ---- Landing sections fade in as they are scrolled to. Without this script
+     or without IntersectionObserver they are simply visible. */
+  const initReveal = () => {
+    const items = document.querySelectorAll('[data-reveal]');
+    if (!items.length || !('IntersectionObserver' in window)) {
+      return;
+    }
+    root.classList.add('reveal-on');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    items.forEach((item) => observer.observe(item));
+  };
+
   const init = () => {
     initMenu();
     initForm();
+    initReveal();
   };
 
   if (document.readyState === 'loading') {

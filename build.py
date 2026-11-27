@@ -31,6 +31,11 @@ ICON_EXTERNAL = (
     '<path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7.5 8.5" fill="none" stroke="currentColor" '
     'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
+ICON_ARROW = (
+    '<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="14" height="14">'
+    '<path d="M3,8 h10 M9,4 l4,4 l-4,4" fill="none" stroke="currentColor" stroke-width="1.6" '
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
 ICON_MENU = (
     '<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="16" height="16">'
     '<path class="icon-open" d="M2 4h12M2 8h12M2 12h12" fill="none" stroke="currentColor" '
@@ -331,6 +336,8 @@ def layout(shared, texts, lang, page_id, body):
             f'{e(l["label"])}<span class="visually-hidden"> {e(l["name"])}</span></a></li>\n'
         )
 
+    main_class = "landing" if page_id == "home" else "container"
+
     return (
         head(lang, meta["title"], meta["description"])
         + alternates
@@ -353,7 +360,7 @@ def layout(shared, texts, lang, page_id, body):
 </nav>
 </div>
 </header>
-<main id="main" class="container" tabindex="-1">
+<main id="main" class="{main_class}" tabindex="-1">
 {body}</main>
 <footer class="site-footer">
 <div class="container footer-inner">
@@ -372,62 +379,13 @@ def layout(shared, texts, lang, page_id, body):
 
 # ---------------------------------------------------------------- pages
 
-def render_home(shared, t, lang):
-    h = t["home"]
-    cards = ""
-    for page in shared["pages"]:
-        if page["id"] == "home":
-            continue
-        card = h["cards"][page["id"]]
-        cards += (
-            f'<li class="card card-link">{icon_tile(page["id"])}<h3><a href="{e(page_url(shared, lang, page["id"]))}">'
-            f'{e(card["title"])}</a></h3><p>{e(card["text"])}</p></li>\n'
-        )
-    uni = t["education"]["university"]
-    facts = "".join(f"<li>{e(uni[key])}</li>\n" for key in ("major", "city", "year"))
-    return f"""<section class="hero">
-<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
-<span class="hero-glow hero-glow-b" aria-hidden="true"></span>
-<img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
-<div>
-<h1>{e(t["site"]["name"])}</h1>
-<p class="role">{e(h["role"])}</p>
-<p class="lead">{e(h["intro"])}</p>
-<ul class="hero-facts">
-{facts}</ul>
-<p class="actions">
-<a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}</a>
-<a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
-</p>
-</div>
-</section>
-<section aria-labelledby="quick-heading">
-<h2 id="quick-heading">{e(h["quick_heading"])}</h2>
-<ul class="cards cards-quick">
-{cards}</ul>
-</section>
-"""
-
-
-def render_education(shared, t):
+def education_timeline(t, level):
+    """University and school cards, newest first. Shared by the landing and education pages."""
     ed = t["education"]
-    uni, school, portfolio = ed["university"], ed["school"], ed["portfolio"]
-    subjects = ""
-    for subject in shared["subjects"]:
-        text = portfolio["subjects"][subject["id"]]
-        subjects += f"""<li class="subject">
-<div>
-<h3>{e(text["name"])}</h3>
-<p>{e(text["text"])}</p>
-</div>
-<p class="status"><span class="visually-hidden">{e(portfolio["status_label"])} </span>{e(portfolio["status"][subject["status"]])}</p>
-</li>
-"""
-    return f"""<h1>{e(ed["heading"])}</h1>
-<p class="lead">{e(ed["lead"])}</p>
-<div class="cards timeline">
+    uni, school = ed["university"], ed["school"]
+    return f"""<div class="cards timeline">
 <section class="card" aria-labelledby="university-heading">
-<h2 id="university-heading">{e(uni["heading"])}</h2>
+<h{level} id="university-heading">{e(uni["heading"])}</h{level}>
 <p class="card-name">{e(uni["name"])}</p>
 <dl class="facts">
 <div><dt>{e(uni["city_label"])}</dt><dd>{e(uni["city"])}</dd></div>
@@ -436,7 +394,7 @@ def render_education(shared, t):
 </dl>
 </section>
 <section class="card" aria-labelledby="school-heading">
-<h2 id="school-heading">{e(school["heading"])}</h2>
+<h{level} id="school-heading">{e(school["heading"])}</h{level}>
 <p class="card-name">{e(school["name"])}</p>
 <dl class="facts">
 <div><dt>{e(school["city_label"])}</dt><dd>{e(school["city"])}</dd></div>
@@ -444,16 +402,11 @@ def render_education(shared, t):
 </dl>
 </section>
 </div>
-<section aria-labelledby="portfolio-heading">
-<h2 id="portfolio-heading">{e(portfolio["heading"])}</h2>
-<p>{e(portfolio["intro"])}</p>
-<ul class="subjects">
-{subjects}</ul>
-</section>
 """
 
 
-def render_projects(shared, t):
+def project_cards(shared, t, level):
+    """One article per project. Shared by the landing and projects pages."""
     pr = t["projects"]
     items = ""
     for project in shared["projects"]:
@@ -468,17 +421,123 @@ def render_projects(shared, t):
                 + "</ul>\n"
             )
         items += f"""<article class="card project{' project-featured' if featured else ''}" aria-labelledby="project-{e(project["id"])}">
-{badge}{icon_tile(project["id"])}<h2 id="project-{e(project["id"])}">{e(text["name"])}</h2>
+{badge}{icon_tile(project["id"])}<h{level} id="project-{e(project["id"])}">{e(text["name"])}</h{level}>
 <p>{e(text["text"])}</p>
 {features}<p>{external_link(t, project["url"], text["link"])}</p>
 </article>
 """
+    return f'<div class="projects">\n{items}</div>\n'
+
+
+def activity_cards(t, level, grid):
+    ac = t["activities"]
+    sections = ""
+    for key in ("interests", "achievements", "extracurricular", "plans"):
+        sections += f"""<section class="card" aria-labelledby="{key}-heading">
+{icon_tile(key)}<h{level} id="{key}-heading">{e(ac[key]["heading"])}</h{level}>
+<p>{e(ac[key]["text"])}</p>
+</section>
+"""
+    return f'<div class="cards {grid}">\n{sections}</div>\n'
+
+
+def band(band_id, heading, lead, body, more="", tint=False):
+    """One full-width section of the landing page."""
+    return f"""<section class="band{' band-tint' if tint else ''}" aria-labelledby="{band_id}-band">
+<div class="container" data-reveal>
+<h2 id="{band_id}-band">{e(heading)}</h2>
+<p class="lead">{e(lead)}</p>
+{body}{more}</div>
+</section>
+"""
+
+
+def render_home(shared, t, lang):
+    """Landing page: hero, then one band per section of the site, then a call to action."""
+    h = t["home"]
+    uni = t["education"]["university"]
+    facts = "".join(f"<li>{e(uni[key])}</li>\n" for key in ("major", "city", "year"))
+
+    def more(page_id):
+        return (
+            f'<p class="band-more"><a class="button button-secondary" '
+            f'href="{e(page_url(shared, lang, page_id))}">{e(h["cards"][page_id]["title"])}'
+            f'{ICON_ARROW}</a></p>\n'
+        )
+
+    contact = t["contact"]
+    cta = f"""<section class="band band-cta" aria-labelledby="contact-band">
+<div class="container" data-reveal>
+<h2 id="contact-band">{e(contact["form"]["heading"])}</h2>
+<p class="lead">{e(h["cards"]["contact"]["text"])}</p>
+<p class="actions">
+<a class="button" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
+<a class="button button-secondary" href="{e(shared["links"]["github"])}" target="_blank" rel="noopener noreferrer">{e(t["footer"]["github"])}{ICON_EXTERNAL}<span class="visually-hidden"> {e(t["a11y"]["new_tab"])}</span></a>
+</p>
+</div>
+</section>
+"""
+    return (
+        f"""<section class="band band-hero">
+<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
+<span class="hero-glow hero-glow-b" aria-hidden="true"></span>
+<div class="container hero">
+<img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
+<div>
+<h1>{e(t["site"]["name"])}</h1>
+<p class="role">{e(h["role"])}</p>
+<p class="lead">{e(h["intro"])}</p>
+<ul class="hero-facts">
+{facts}</ul>
+<p class="actions">
+<a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}</a>
+<a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
+</p>
+</div>
+</div>
+</section>
+"""
+        + band("projects", t["projects"]["heading"], h["cards"]["projects"]["text"],
+               project_cards(shared, t, 3), more("projects"))
+        + band("education", t["education"]["heading"], h["cards"]["education"]["text"],
+               education_timeline(t, 3), more("education"), tint=True)
+        + band("activities", t["activities"]["heading"], h["cards"]["activities"]["text"],
+               activity_cards(t, 3, "cards-two"), more("activities"))
+        + cta
+    )
+
+
+def render_education(shared, t):
+    ed = t["education"]
+    portfolio = ed["portfolio"]
+    subjects = ""
+    for subject in shared["subjects"]:
+        text = portfolio["subjects"][subject["id"]]
+        subjects += f"""<li class="subject">
+<div>
+<h3>{e(text["name"])}</h3>
+<p>{e(text["text"])}</p>
+</div>
+<p class="status"><span class="visually-hidden">{e(portfolio["status_label"])} </span>{e(portfolio["status"][subject["status"]])}</p>
+</li>
+"""
+    return f"""<h1>{e(ed["heading"])}</h1>
+<p class="lead">{e(ed["lead"])}</p>
+{education_timeline(t, 2)}<section aria-labelledby="portfolio-heading">
+<h2 id="portfolio-heading">{e(portfolio["heading"])}</h2>
+<p>{e(portfolio["intro"])}</p>
+<ul class="subjects">
+{subjects}</ul>
+</section>
+"""
+
+
+def render_projects(shared, t):
+    pr = t["projects"]
     tools = "".join(f"<li>{e(item)}</li>\n" for item in pr["tools"]["items"])
     return f"""<h1>{e(pr["heading"])}</h1>
 <p class="lead">{e(pr["lead"])}</p>
-<div class="projects">
-{items}</div>
-<section aria-labelledby="tools-heading">
+{project_cards(shared, t, 2)}<section aria-labelledby="tools-heading">
 <h2 id="tools-heading">{e(pr["tools"]["heading"])}</h2>
 <p>{e(pr["tools"]["intro"])}</p>
 <ul class="tags">
@@ -489,18 +548,9 @@ def render_projects(shared, t):
 
 def render_activities(t):
     ac = t["activities"]
-    sections = ""
-    for key in ("interests", "achievements", "extracurricular", "plans"):
-        sections += f"""<section class="card" aria-labelledby="{key}-heading">
-{icon_tile(key)}<h2 id="{key}-heading">{e(ac[key]["heading"])}</h2>
-<p>{e(ac[key]["text"])}</p>
-</section>
-"""
     return f"""<h1>{e(ac["heading"])}</h1>
 <p class="lead">{e(ac["lead"])}</p>
-<div class="cards cards-two">
-{sections}</div>
-"""
+{activity_cards(t, 2, "cards-two")}"""
 
 
 def render_contact(shared, t, lang):
