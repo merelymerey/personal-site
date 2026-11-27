@@ -352,7 +352,6 @@ img {
   color: var(--accent-strong);
 }
 
-.button[disabled],
 .button[aria-disabled="true"] {
   opacity: 0.65;
   cursor: progress;
@@ -514,6 +513,7 @@ img {
   border-left-width: 4px;
 }
 
+/* The colour is repeated on purpose: ".card p" above would otherwise win over ".badge". */
 .card .badge {
   margin-bottom: var(--space-3);
   color: var(--accent-strong);

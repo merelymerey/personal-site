@@ -32,6 +32,7 @@
   ],
   "form": {
     "action": "/contact.php",
+    "required_marker": "*",
     "name_min": 2,
     "name_max": 80,
     "contact_max": 120,

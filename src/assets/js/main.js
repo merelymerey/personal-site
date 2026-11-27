@@ -103,8 +103,9 @@
 
     const check = (field) => {
       const length = Array.from(field.value.trim()).length;
-      const min = Number(field.dataset.min) || 0;
-      const max = Number(field.dataset.max) || Infinity;
+      /* minLength and maxLength are -1 when the attribute is absent. */
+      const min = field.minLength > 0 ? field.minLength : 0;
+      const max = field.maxLength > 0 ? field.maxLength : Infinity;
       if (length === 0) {
         return field.required ? field.dataset.msgRequired : '';
       }

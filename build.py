@@ -3,11 +3,15 @@
 
 Standard library only. Usage: python3 build.py
 All visible text comes from content/<lang>.json; this file holds markup only.
+The site is built in a temporary directory that replaces dist/ only on success.
 """
 
 import json
+import os
+import re
 import shutil
 import sys
+import tempfile
 from html import escape
 from pathlib import Path
 
@@ -28,12 +32,21 @@ ICON_EXTERNAL = (
     'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 ICON_MENU = (
-    '<svg class="icon icon-menu" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="16" height="16">'
+    '<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="16" height="16">'
     '<path class="icon-open" d="M2 4h12M2 8h12M2 12h12" fill="none" stroke="currentColor" '
     'stroke-width="1.6" stroke-linecap="round"/>'
     '<path class="icon-close" d="M3 3l10 10M13 3 3 13" fill="none" stroke="currentColor" '
     'stroke-width="1.6" stroke-linecap="round"/></svg>'
 )
+
+
+# Pages that have a template in render_page().
+PAGE_IDS = ("home", "education", "projects", "activities", "contact")
+# Length limits in shared.json "form"; contact.php reads them from the generated config.
+FORM_LIMITS = ("name_min", "name_max", "contact_max", "message_min", "message_max")
+FORM_FIELDS = ("name", "contact", "message")
+CONFIG_FILE = "contact.config.php"
+PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
 
 class BuildError(Exception):
@@ -71,9 +84,125 @@ def flatten(node, prefix=""):
     return out
 
 
+def require(node, path, where):
+    """Return node[a][b]... for the dotted path, or fail with a clear message."""
+    for key in path.split("."):
+        if not isinstance(node, dict) or key not in node:
+            raise BuildError(f"{where}: missing '{path}'")
+        node = node[key]
+    return node
+
+
+def ids_of(shared, name, fields):
+    """Ids of a shared.json list after checking each entry has the given fields."""
+    entries = require(shared, name, "shared.json")
+    if not isinstance(entries, list) or not entries:
+        raise BuildError(f"shared.json: '{name}' must be a non-empty list")
+    for index, entry in enumerate(entries):
+        for field in fields:
+            value = require(entry, field, f"shared.json: {name}[{index}]")
+            if not isinstance(value, str) or not value:
+                raise BuildError(f"shared.json: {name}[{index}].{field} must be a non-empty string")
+    ids = [entry[fields[0]] for entry in entries]
+    duplicates = sorted({value for value in ids if ids.count(value) > 1})
+    if duplicates:
+        raise BuildError(f"shared.json: duplicate {fields[0]} in '{name}': {duplicates}")
+    return ids
+
+
+def validate_shared(shared):
+    """Check the shape of shared.json before any content file is read."""
+    codes = ids_of(shared, "languages", ("code", "label", "name"))
+    if require(shared, "default_lang", "shared.json") not in codes:
+        raise BuildError("shared.json: default_lang is not in languages")
+
+    pages = ids_of(shared, "pages", ("id", "file"))
+    unknown = sorted(set(pages) - set(PAGE_IDS))
+    if unknown:
+        raise BuildError(f"shared.json: pages without a template in build.py: {unknown}")
+    ids_of(shared, "subjects", ("id", "status"))
+    ids_of(shared, "projects", ("id", "url"))
+
+    urls = [require(shared, f"links.{name}", "shared.json") for name in ("github", "bot")]
+    for url in urls + [project["url"] for project in shared["projects"]]:
+        if not isinstance(url, str) or not url.startswith("https://"):
+            raise BuildError(f"shared.json: external link must use https: {url}")
+
+    for name in ("action", "required_marker"):
+        value = require(shared, f"form.{name}", "shared.json")
+        if not isinstance(value, str) or not value.strip():
+            raise BuildError(f"shared.json: form.{name} must be a non-empty string")
+    form = shared["form"]
+    for name in FORM_LIMITS:
+        value = require(form, name, "shared.json: form")
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise BuildError(f"shared.json: form.{name} must be a positive whole number")
+    for field in ("name", "message"):
+        if form[f"{field}_min"] > form[f"{field}_max"]:
+            raise BuildError(f"shared.json: form.{field}_min is greater than form.{field}_max")
+    return codes
+
+
+def validate_ids(shared, texts):
+    """Every id and status in shared.json has its texts in each language, and
+    no subject or project text is left without an entry in shared.json."""
+    for code, t in texts.items():
+        where = f"{code}.json"
+        for page in shared["pages"]:
+            for key in ("nav", "title", "description"):
+                require(t, f"pages.{page['id']}.{key}", where)
+            if page["id"] != "home":
+                for key in ("title", "text"):
+                    require(t, f"home.cards.{page['id']}.{key}", where)
+        for subject in shared["subjects"]:
+            for key in ("name", "text"):
+                require(t, f"education.portfolio.subjects.{subject['id']}.{key}", where)
+            require(t, f"education.portfolio.status.{subject['status']}", where)
+        for project in shared["projects"]:
+            for key in ("name", "text", "features", "link"):
+                require(t, f"projects.items.{project['id']}.{key}", where)
+        for name, path in (("subjects", "education.portfolio.subjects"), ("projects", "projects.items")):
+            listed = {entry["id"] for entry in shared[name]}
+            unlisted = sorted(set(require(t, path, where)) - listed)
+            if unlisted:
+                raise BuildError(f"{where}: '{path}' has entries missing from shared.json {name}: {unlisted}")
+
+
+def fill(text, values, where):
+    """Replace each {key} in text with values[key]; an unknown key is an error."""
+    def swap(match):
+        key = match.group(1)
+        if key not in values:
+            raise BuildError(f"{where}: unknown placeholder {{{key}}}")
+        return str(values[key])
+    return PLACEHOLDER.sub(swap, text)
+
+
+def fill_form_texts(shared, texts):
+    """Put the limits and the required-field marker from shared.json into the
+    form texts, so the prose cannot drift from the values that are enforced.
+    result.invalid keeps its placeholders: contact.php fills them from the config."""
+    form = shared["form"]
+    for code, t in texts.items():
+        strings = require(t, "contact.form", f"{code}.json")
+        for key, text in strings.items():
+            field = key.partition("_")[0]
+            values = {}
+            if key == "required_note":
+                values = {"marker": form["required_marker"]}
+            elif field in FORM_FIELDS:
+                values = {"max": form[f"{field}_max"]}
+                if f"{field}_min" in form:
+                    values["min"] = form[f"{field}_min"]
+            strings[key] = fill(text, values, f"{code}.json: contact.form.{key}")
+        for key, text in require(t, "result", f"{code}.json").items():
+            values = {name: form[name] for name in FORM_LIMITS} if key == "invalid" else {}
+            fill(text, values, f"{code}.json: result.{key}")
+
+
 def load_content():
     shared = load_json(CONTENT / "shared.json")
-    codes = [lang["code"] for lang in shared["languages"]]
+    codes = validate_shared(shared)
     texts = {code: load_json(CONTENT / f"{code}.json") for code in codes}
 
     flat = {code: flatten(texts[code]) for code in codes}
@@ -93,11 +222,8 @@ def load_content():
             if not isinstance(value, str) or not value.strip():
                 raise BuildError(f"{code}.json: '{key}' must be a non-empty string")
 
-    if shared["default_lang"] not in codes:
-        raise BuildError("shared.json: default_lang is not in languages")
-    for url in list(shared["links"].values()) + [p["url"] for p in shared["projects"]]:
-        if not url.startswith("https://"):
-            raise BuildError(f"shared.json: external link must use https: {url}")
+    validate_ids(shared, texts)
+    fill_form_texts(shared, texts)
     return shared, texts
 
 
@@ -117,10 +243,9 @@ def absolute(shared, path):
     return shared.get("site_url", "").rstrip("/") + path
 
 
-def external_link(t, url, label, css_class=""):
-    cls = f' class="{e(css_class)}"' if css_class else ""
+def external_link(t, url, label):
     return (
-        f'<a{cls} href="{e(url)}" target="_blank" rel="noopener noreferrer">'
+        f'<a href="{e(url)}" target="_blank" rel="noopener noreferrer">'
         f'{e(label)}{ICON_EXTERNAL}'
         f'<span class="visually-hidden"> {e(t["a11y"]["new_tab"])}</span></a>'
     )
@@ -235,7 +360,7 @@ def render_home(shared, t, lang):
         )
     return f"""<section class="hero">
 <img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
-<div class="hero-text">
+<div>
 <h1>{e(t["site"]["name"])}</h1>
 <p class="role">{e(h["role"])}</p>
 <p class="lead">{e(h["intro"])}</p>
@@ -253,19 +378,18 @@ def render_home(shared, t, lang):
 """
 
 
-def render_education(shared, t, lang):
+def render_education(shared, t):
     ed = t["education"]
     uni, school, portfolio = ed["university"], ed["school"], ed["portfolio"]
     subjects = ""
     for subject in shared["subjects"]:
         text = portfolio["subjects"][subject["id"]]
-        status = subject["status"]
         subjects += f"""<li class="subject">
-<div class="subject-body">
+<div>
 <h3>{e(text["name"])}</h3>
 <p>{e(text["text"])}</p>
 </div>
-<p class="status status-{e(status.replace("_", "-"))}"><span class="visually-hidden">{e(portfolio["status_label"])} </span>{e(portfolio["status"][status])}</p>
+<p class="status"><span class="visually-hidden">{e(portfolio["status_label"])} </span>{e(portfolio["status"][subject["status"]])}</p>
 </li>
 """
     return f"""<h1>{e(ed["heading"])}</h1>
@@ -298,7 +422,7 @@ def render_education(shared, t, lang):
 """
 
 
-def render_projects(shared, t, lang):
+def render_projects(shared, t):
     pr = t["projects"]
     items = ""
     for project in shared["projects"]:
@@ -315,7 +439,7 @@ def render_projects(shared, t, lang):
         items += f"""<article class="card project{' project-featured' if featured else ''}" aria-labelledby="project-{e(project["id"])}">
 {badge}<h2 id="project-{e(project["id"])}">{e(text["name"])}</h2>
 <p>{e(text["text"])}</p>
-{features}<p class="project-link">{external_link(t, project["url"], text["link"])}</p>
+{features}<p>{external_link(t, project["url"], text["link"])}</p>
 </article>
 """
     tools = "".join(f"<li>{e(item)}</li>\n" for item in pr["tools"]["items"])
@@ -332,7 +456,7 @@ def render_projects(shared, t, lang):
 """
 
 
-def render_activities(shared, t, lang):
+def render_activities(t):
     ac = t["activities"]
     sections = ""
     for key in ("interests", "achievements", "extracurricular", "plans"):
@@ -352,7 +476,7 @@ def render_contact(shared, t, lang):
     c = t["contact"]
     f, links, limits = c["form"], c["links"], shared["form"]
     privacy = "".join(f"<li>{e(item)}</li>\n" for item in c["privacy"]["items"])
-    star = '<span class="required" aria-hidden="true">*</span>'
+    star = f'<span class="required" aria-hidden="true">{e(limits["required_marker"])}</span>'
     return f"""<h1>{e(c["heading"])}</h1>
 <p class="lead">{e(c["lead"])}</p>
 <section aria-labelledby="links-heading">
@@ -382,7 +506,7 @@ def render_contact(shared, t, lang):
 <div class="field">
 <label for="name">{e(f["name_label"])} {star}</label>
 <input type="text" id="name" name="name" required minlength="{e(limits["name_min"])}" maxlength="{e(limits["name_max"])}" autocomplete="name"
- aria-describedby="name-hint name-error" data-validate data-min="{e(limits["name_min"])}" data-max="{e(limits["name_max"])}"
+ aria-describedby="name-hint name-error" data-validate
  data-msg-required="{e(f["name_required"])}" data-msg-short="{e(f["name_short"])}" data-msg-long="{e(f["name_long"])}">
 <p class="hint" id="name-hint">{e(f["name_hint"])}</p>
 <p class="field-error" id="name-error" hidden></p>
@@ -390,7 +514,7 @@ def render_contact(shared, t, lang):
 <div class="field">
 <label for="contact">{e(f["contact_label"])}</label>
 <input type="text" id="contact" name="contact" maxlength="{e(limits["contact_max"])}" autocomplete="off"
- aria-describedby="contact-hint contact-error" data-validate data-min="0" data-max="{e(limits["contact_max"])}"
+ aria-describedby="contact-hint contact-error" data-validate
  data-msg-long="{e(f["contact_long"])}">
 <p class="hint" id="contact-hint">{e(f["contact_hint"])}</p>
 <p class="field-error" id="contact-error" hidden></p>
@@ -398,7 +522,7 @@ def render_contact(shared, t, lang):
 <div class="field">
 <label for="message">{e(f["message_label"])} {star}</label>
 <textarea id="message" name="message" rows="7" required minlength="{e(limits["message_min"])}" maxlength="{e(limits["message_max"])}"
- aria-describedby="message-hint message-error" data-validate data-min="{e(limits["message_min"])}" data-max="{e(limits["message_max"])}"
+ aria-describedby="message-hint message-error" data-validate
  data-msg-required="{e(f["message_required"])}" data-msg-short="{e(f["message_short"])}" data-msg-long="{e(f["message_long"])}"></textarea>
 <p class="hint" id="message-hint">{e(f["message_hint"])}</p>
 <p class="field-error" id="message-error" hidden></p>
@@ -415,13 +539,19 @@ def render_contact(shared, t, lang):
 """
 
 
-RENDERERS = {
-    "home": render_home,
-    "education": render_education,
-    "projects": render_projects,
-    "activities": render_activities,
-    "contact": render_contact,
-}
+def render_page(page_id, shared, t, lang):
+    """Body of one language page. PAGE_IDS lists the ids handled here."""
+    if page_id == "home":
+        return render_home(shared, t, lang)
+    if page_id == "education":
+        return render_education(shared, t)
+    if page_id == "projects":
+        return render_projects(shared, t)
+    if page_id == "activities":
+        return render_activities(t)
+    if page_id == "contact":
+        return render_contact(shared, t, lang)
+    raise BuildError(f"Unknown page id: {page_id}")
 
 
 def render_gateway(shared, texts):
@@ -494,6 +624,58 @@ def render_404(shared, texts):
     )
 
 
+# ---------------------------------------------------------------- form config
+
+def php_string(value):
+    """A PHP single-quoted string literal: only backslash and quote are special."""
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def php_value(value, depth=1):
+    """PHP source for a nested structure of dicts, lists, strings and whole numbers."""
+    if isinstance(value, dict):
+        pad = "    " * depth
+        rows = "".join(
+            f"{pad}{php_string(key)} => {php_value(item, depth + 1)},\n" for key, item in value.items()
+        )
+        return "[\n" + rows + "    " * (depth - 1) + "]"
+    if isinstance(value, list):
+        return "[" + ", ".join(php_value(item, depth) for item in value) + "]"
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, str):
+        return php_string(value)
+    raise BuildError(f"Cannot write {type(value).__name__} to {CONFIG_FILE}")
+
+
+def render_form_config(shared, texts):
+    """contact.config.php: everything contact.php needs from the content files."""
+    result_texts = {}
+    for l in shared["languages"]:
+        t = texts[l["code"]]
+        form = t["contact"]["form"]
+        result_texts[l["code"]] = {
+            **t["result"],
+            "ok": form["success"],
+            "rate": form["error_rate"],
+            "server": form["error"],
+            "new_tab": t["a11y"]["new_tab"],
+        }
+    config = {
+        "langs": [l["code"] for l in shared["languages"]],
+        "default_lang": shared["default_lang"],
+        "github_url": shared["links"]["github"],
+        "limits": {name: shared["form"][name] for name in FORM_LIMITS},
+        "texts": result_texts,
+    }
+    return (
+        "<?php\n"
+        "// Generated by build.py from content/*.json. Do not edit: change the content files and rebuild.\n"
+        "\n"
+        f"return {php_value(config)};\n"
+    )
+
+
 # ---------------------------------------------------------------- build
 
 def write(path, text):
@@ -508,31 +690,53 @@ def copy_file(source, target):
     shutil.copyfile(source, target)
 
 
-def build():
-    shared, texts = load_content()
-
-    if DIST.exists():
-        shutil.rmtree(DIST)
-    DIST.mkdir()
-
+def build_into(out, shared, texts):
+    """Write the complete site into the empty directory out. Returns the page count."""
     count = 0
     for l in shared["languages"]:
         lang = l["code"]
         for page in shared["pages"]:
-            body = RENDERERS[page["id"]](shared, texts[lang], lang)
-            write(DIST / lang / page["file"], layout(shared, texts, lang, page["id"], body))
+            body = render_page(page["id"], shared, texts[lang], lang)
+            write(out / lang / page["file"], layout(shared, texts, lang, page["id"], body))
             count += 1
 
-    write(DIST / "index.html", render_gateway(shared, texts))
-    write(DIST / "404.html", render_404(shared, texts))
+    write(out / "index.html", render_gateway(shared, texts))
+    write(out / "404.html", render_404(shared, texts))
 
     assets = SRC / "assets"
     if not assets.is_dir():
         raise BuildError(f"Missing directory: {assets}")
-    shutil.copytree(assets, DIST / "assets", ignore=shutil.ignore_patterns(".DS_Store"))
-    copy_file(SRC / "contact.php", DIST / "contact.php")
-    copy_file(SRC / "htaccess" / "root.htaccess", DIST / ".htaccess")
-    copy_file(SRC / "htaccess" / "data.htaccess", DIST / "data" / ".htaccess")
+    shutil.copytree(assets, out / "assets", ignore=shutil.ignore_patterns(".DS_Store"))
+    copy_file(SRC / "contact.php", out / "contact.php")
+    write(out / CONFIG_FILE, render_form_config(shared, texts))
+    copy_file(SRC / "htaccess" / "root.htaccess", out / ".htaccess")
+    copy_file(SRC / "htaccess" / "data.htaccess", out / "data" / ".htaccess")
+    return count
+
+
+def build():
+    shared, texts = load_content()
+
+    # Build next to dist/ (same file system), then swap: a failed build leaves
+    # the previous dist/ untouched.
+    staging = Path(tempfile.mkdtemp(prefix=".dist-new-", dir=ROOT))
+    previous = ROOT / (staging.name + ".old")
+    try:
+        count = build_into(staging, shared, texts)
+        os.chmod(staging, 0o755)
+        if DIST.exists():
+            DIST.rename(previous)
+        try:
+            staging.rename(DIST)
+        except OSError:
+            if previous.exists():
+                previous.rename(DIST)
+            raise
+    except OSError as error:
+        raise BuildError(f"Cannot write the site: {error}") from error
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+        shutil.rmtree(previous, ignore_errors=True)
 
     print(f"Built {count} language pages, index.html and 404.html in {DIST}")
 

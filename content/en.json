@@ -195,13 +195,13 @@
     },
     "form": {
       "heading": "Send a message",
-      "required_note": "Fields marked with * are required.",
+      "required_note": "Fields marked with {marker} are required.",
       "name_label": "Your name",
-      "name_hint": "From 2 to 80 characters.",
+      "name_hint": "From {min} to {max} characters.",
       "contact_label": "How to reply (optional)",
-      "contact_hint": "An e-mail address or a messenger username, up to 120 characters. Leave it empty if no answer is needed.",
+      "contact_hint": "An e-mail address or a messenger username, up to {max} characters. Leave it empty if no answer is needed.",
       "message_label": "Message",
-      "message_hint": "From 10 to 2000 characters.",
+      "message_hint": "From {min} to {max} characters.",
       "honeypot_label": "Leave this field empty",
       "submit": "Send message",
       "sending": "Sending…",
@@ -210,12 +210,12 @@
       "error_rate": "Too many messages in a short time. Please wait half a minute and try again.",
       "error_field": "The server did not accept this field. Please check it and try again.",
       "name_required": "Please enter your name.",
-      "name_short": "The name must be at least 2 characters long.",
-      "name_long": "The name must be no longer than 80 characters.",
-      "contact_long": "The reply contact must be no longer than 120 characters.",
+      "name_short": "The name must be at least {min} characters long.",
+      "name_long": "The name must be no longer than {max} characters.",
+      "contact_long": "The reply contact must be no longer than {max} characters.",
       "message_required": "Please write a message.",
-      "message_short": "The message must be at least 10 characters long.",
-      "message_long": "The message must be no longer than 2000 characters."
+      "message_short": "The message must be at least {min} characters long.",
+      "message_long": "The message must be no longer than {max} characters."
     },
     "privacy": {
       "heading": "Privacy",
@@ -227,6 +227,13 @@
         "The code of this site sets no cookies, has no analytics and loads nothing from third parties. The language choice is remembered only in your own browser and is not sent to the server."
       ]
     }
+  },
+  "result": {
+    "title_ok": "Message sent",
+    "title_fail": "Message not sent",
+    "invalid": "Please check the form: the name must be {name_min} to {name_max} characters, the reply contact up to {contact_max} and the message {message_min} to {message_max} characters.",
+    "method": "This address only accepts messages sent from the contact form.",
+    "back": "Back to the contact page"
   },
   "footer": {
     "copyright": "© 2026 Merey Bakhytzhan",
