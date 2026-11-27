@@ -1,0 +1,546 @@
+#!/usr/bin/env python3
+"""Build the trilingual static site into dist/.
+
+Standard library only. Usage: python3 build.py
+All visible text comes from content/<lang>.json; this file holds markup only.
+"""
+
+import json
+import shutil
+import sys
+from html import escape
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+CONTENT = ROOT / "content"
+SRC = ROOT / "src"
+DIST = ROOT / "dist"
+
+CSS_URL = "/assets/css/style.css"
+JS_URL = "/assets/js/main.js"
+FAVICON_URL = "/assets/img/favicon.svg"
+AVATAR_URL = "/assets/img/avatar.svg"
+
+# Decorative inline icons (drawn for this site). Always aria-hidden.
+ICON_EXTERNAL = (
+    '<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="14" height="14">'
+    '<path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7.5 8.5" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+ICON_MENU = (
+    '<svg class="icon icon-menu" aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="16" height="16">'
+    '<path class="icon-open" d="M2 4h12M2 8h12M2 12h12" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round"/>'
+    '<path class="icon-close" d="M3 3l10 10M13 3 3 13" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round"/></svg>'
+)
+
+
+class BuildError(Exception):
+    pass
+
+
+def e(value):
+    """Escape any content value for use in HTML text or attribute values."""
+    return escape(str(value), quote=True)
+
+
+# ---------------------------------------------------------------- content
+
+def load_json(path):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, ValueError) as error:
+        raise BuildError(f"Cannot read {path}: {error}") from error
+
+
+def flatten(node, prefix=""):
+    """Return {dotted.key: leaf} for a nested structure of dicts and lists."""
+    out = {}
+    if isinstance(node, dict):
+        for key, value in node.items():
+            out.update(flatten(value, f"{prefix}.{key}" if prefix else key))
+    elif isinstance(node, list):
+        if not node:
+            out[prefix + "[]"] = None
+        for index, value in enumerate(node):
+            out.update(flatten(value, f"{prefix}[{index}]"))
+    else:
+        out[prefix] = node
+    return out
+
+
+def load_content():
+    shared = load_json(CONTENT / "shared.json")
+    codes = [lang["code"] for lang in shared["languages"]]
+    texts = {code: load_json(CONTENT / f"{code}.json") for code in codes}
+
+    flat = {code: flatten(texts[code]) for code in codes}
+    reference = set(flat[codes[0]])
+    for code in codes[1:]:
+        missing = sorted(reference - set(flat[code]))
+        extra = sorted(set(flat[code]) - reference)
+        if missing or extra:
+            raise BuildError(
+                f"Key mismatch between {codes[0]}.json and {code}.json: "
+                f"missing {missing}, extra {extra}"
+            )
+    for code in codes:
+        for key, value in flat[code].items():
+            if value is None:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                raise BuildError(f"{code}.json: '{key}' must be a non-empty string")
+
+    if shared["default_lang"] not in codes:
+        raise BuildError("shared.json: default_lang is not in languages")
+    for url in list(shared["links"].values()) + [p["url"] for p in shared["projects"]]:
+        if not url.startswith("https://"):
+            raise BuildError(f"shared.json: external link must use https: {url}")
+    return shared, texts
+
+
+# ---------------------------------------------------------------- helpers
+
+def page_url(shared, lang, page_id):
+    for page in shared["pages"]:
+        if page["id"] == page_id:
+            if page["file"] == "index.html":
+                return f"/{lang}/"
+            return f"/{lang}/{page['file']}"
+    raise BuildError(f"Unknown page id: {page_id}")
+
+
+def absolute(shared, path):
+    """Prefix a root-relative path with the site URL when one is configured."""
+    return shared.get("site_url", "").rstrip("/") + path
+
+
+def external_link(t, url, label, css_class=""):
+    cls = f' class="{e(css_class)}"' if css_class else ""
+    return (
+        f'<a{cls} href="{e(url)}" target="_blank" rel="noopener noreferrer">'
+        f'{e(label)}{ICON_EXTERNAL}'
+        f'<span class="visually-hidden"> {e(t["a11y"]["new_tab"])}</span></a>'
+    )
+
+
+def head(lang, title, description, extra=""):
+    return f"""<!DOCTYPE html>
+<html lang="{e(lang)}"{extra}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(title)}</title>
+<meta name="description" content="{e(description)}">
+<meta name="color-scheme" content="light dark">
+"""
+
+
+def head_assets():
+    return f"""<link rel="icon" href="{FAVICON_URL}" type="image/svg+xml">
+<link rel="stylesheet" href="{CSS_URL}">
+<script src="{JS_URL}"></script>
+</head>
+"""
+
+
+# ---------------------------------------------------------------- layout
+
+def layout(shared, texts, lang, page_id, body):
+    """Wrap page content in the shared head, header and footer."""
+    t = texts[lang]
+    meta = t["pages"][page_id]
+
+    alternates = "".join(
+        f'<link rel="alternate" hreflang="{e(l["code"])}" '
+        f'href="{e(absolute(shared, page_url(shared, l["code"], page_id)))}">\n'
+        for l in shared["languages"]
+    )
+    default_href = (
+        absolute(shared, "/") if page_id == "home"
+        else absolute(shared, page_url(shared, shared["default_lang"], page_id))
+    )
+    alternates += f'<link rel="alternate" hreflang="x-default" href="{e(default_href)}">\n'
+
+    nav_items = ""
+    for page in shared["pages"]:
+        current = ' aria-current="page"' if page["id"] == page_id else ""
+        nav_items += (
+            f'<li><a href="{e(page_url(shared, lang, page["id"]))}"{current}>'
+            f'{e(t["pages"][page["id"]]["nav"])}</a></li>\n'
+        )
+
+    lang_items = ""
+    for l in shared["languages"]:
+        current = ' aria-current="true"' if l["code"] == lang else ""
+        lang_items += (
+            f'<li><a href="{e(page_url(shared, l["code"], page_id))}" lang="{e(l["code"])}" '
+            f'hreflang="{e(l["code"])}" data-lang="{e(l["code"])}"{current}>'
+            f'<span aria-hidden="true">{e(l["label"])}</span>'
+            f'<span class="visually-hidden">{e(l["name"])}</span></a></li>\n'
+        )
+
+    return (
+        head(lang, meta["title"], meta["description"])
+        + alternates
+        + head_assets()
+        + f"""<body>
+<a class="skip-link" href="#main">{e(t["a11y"]["skip"])}</a>
+<header class="site-header">
+<div class="container header-inner">
+<a class="brand" href="{e(page_url(shared, lang, "home"))}">{e(t["site"]["name"])}</a>
+<button type="button" class="menu-toggle" aria-expanded="false" aria-controls="site-nav" hidden>
+{ICON_MENU}<span>{e(t["a11y"]["menu"])}</span>
+</button>
+<nav id="site-nav" class="site-nav" aria-label="{e(t["a11y"]["nav_primary"])}">
+<ul>
+{nav_items}</ul>
+</nav>
+<nav class="lang-switch" aria-label="{e(t["a11y"]["nav_language"])}">
+<ul>
+{lang_items}</ul>
+</nav>
+</div>
+</header>
+<main id="main" class="container" tabindex="-1">
+{body}</main>
+<footer class="site-footer">
+<div class="container footer-inner">
+<p>{e(t["footer"]["copyright"])}</p>
+<ul>
+<li>{external_link(t, shared["links"]["github"], t["footer"]["github"])}</li>
+<li><a href="{e(page_url(shared, lang, "contact"))}#privacy">{e(t["footer"]["privacy"])}</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>
+"""
+    )
+
+
+# ---------------------------------------------------------------- pages
+
+def render_home(shared, t, lang):
+    h = t["home"]
+    cards = ""
+    for page in shared["pages"]:
+        if page["id"] == "home":
+            continue
+        card = h["cards"][page["id"]]
+        cards += (
+            f'<li class="card card-link"><h3><a href="{e(page_url(shared, lang, page["id"]))}">'
+            f'{e(card["title"])}</a></h3><p>{e(card["text"])}</p></li>\n'
+        )
+    return f"""<section class="hero">
+<img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
+<div class="hero-text">
+<h1>{e(t["site"]["name"])}</h1>
+<p class="role">{e(h["role"])}</p>
+<p class="lead">{e(h["intro"])}</p>
+<p class="actions">
+<a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}</a>
+<a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
+</p>
+</div>
+</section>
+<section aria-labelledby="quick-heading">
+<h2 id="quick-heading">{e(h["quick_heading"])}</h2>
+<ul class="cards cards-quick">
+{cards}</ul>
+</section>
+"""
+
+
+def render_education(shared, t, lang):
+    ed = t["education"]
+    uni, school, portfolio = ed["university"], ed["school"], ed["portfolio"]
+    subjects = ""
+    for subject in shared["subjects"]:
+        text = portfolio["subjects"][subject["id"]]
+        status = subject["status"]
+        subjects += f"""<li class="subject">
+<div class="subject-body">
+<h3>{e(text["name"])}</h3>
+<p>{e(text["text"])}</p>
+</div>
+<p class="status status-{e(status.replace("_", "-"))}"><span class="visually-hidden">{e(portfolio["status_label"])} </span>{e(portfolio["status"][status])}</p>
+</li>
+"""
+    return f"""<h1>{e(ed["heading"])}</h1>
+<p class="lead">{e(ed["lead"])}</p>
+<div class="cards cards-two">
+<section class="card" aria-labelledby="university-heading">
+<h2 id="university-heading">{e(uni["heading"])}</h2>
+<p class="card-name">{e(uni["name"])}</p>
+<dl class="facts">
+<div><dt>{e(uni["city_label"])}</dt><dd>{e(uni["city"])}</dd></div>
+<div><dt>{e(uni["major_label"])}</dt><dd>{e(uni["major"])}</dd></div>
+<div><dt>{e(uni["year_label"])}</dt><dd>{e(uni["year"])}</dd></div>
+</dl>
+</section>
+<section class="card" aria-labelledby="school-heading">
+<h2 id="school-heading">{e(school["heading"])}</h2>
+<p class="card-name">{e(school["name"])}</p>
+<dl class="facts">
+<div><dt>{e(school["city_label"])}</dt><dd>{e(school["city"])}</dd></div>
+<div><dt>{e(school["graduation_label"])}</dt><dd>{e(school["graduation"])}</dd></div>
+</dl>
+</section>
+</div>
+<section aria-labelledby="portfolio-heading">
+<h2 id="portfolio-heading">{e(portfolio["heading"])}</h2>
+<p>{e(portfolio["intro"])}</p>
+<ul class="subjects">
+{subjects}</ul>
+</section>
+"""
+
+
+def render_projects(shared, t, lang):
+    pr = t["projects"]
+    items = ""
+    for project in shared["projects"]:
+        text = pr["items"][project["id"]]
+        featured = bool(project.get("featured"))
+        badge = f'<p class="badge">{e(pr["featured"])}</p>\n' if featured else ""
+        features = ""
+        if text["features"]:
+            features = (
+                "<ul>\n"
+                + "".join(f"<li>{e(item)}</li>\n" for item in text["features"])
+                + "</ul>\n"
+            )
+        items += f"""<article class="card project{' project-featured' if featured else ''}" aria-labelledby="project-{e(project["id"])}">
+{badge}<h2 id="project-{e(project["id"])}">{e(text["name"])}</h2>
+<p>{e(text["text"])}</p>
+{features}<p class="project-link">{external_link(t, project["url"], text["link"])}</p>
+</article>
+"""
+    tools = "".join(f"<li>{e(item)}</li>\n" for item in pr["tools"]["items"])
+    return f"""<h1>{e(pr["heading"])}</h1>
+<p class="lead">{e(pr["lead"])}</p>
+<div class="projects">
+{items}</div>
+<section aria-labelledby="tools-heading">
+<h2 id="tools-heading">{e(pr["tools"]["heading"])}</h2>
+<p>{e(pr["tools"]["intro"])}</p>
+<ul class="tags">
+{tools}</ul>
+</section>
+"""
+
+
+def render_activities(shared, t, lang):
+    ac = t["activities"]
+    sections = ""
+    for key in ("interests", "achievements", "extracurricular", "plans"):
+        sections += f"""<section class="card" aria-labelledby="{key}-heading">
+<h2 id="{key}-heading">{e(ac[key]["heading"])}</h2>
+<p>{e(ac[key]["text"])}</p>
+</section>
+"""
+    return f"""<h1>{e(ac["heading"])}</h1>
+<p class="lead">{e(ac["lead"])}</p>
+<div class="cards cards-two">
+{sections}</div>
+"""
+
+
+def render_contact(shared, t, lang):
+    c = t["contact"]
+    f, links, limits = c["form"], c["links"], shared["form"]
+    privacy = "".join(f"<li>{e(item)}</li>\n" for item in c["privacy"]["items"])
+    star = '<span class="required" aria-hidden="true">*</span>'
+    return f"""<h1>{e(c["heading"])}</h1>
+<p class="lead">{e(c["lead"])}</p>
+<section aria-labelledby="links-heading">
+<h2 id="links-heading">{e(links["heading"])}</h2>
+<ul class="link-list">
+<li>{external_link(t, shared["links"]["github"], links["github_label"])}<span class="link-note">{e(links["github_text"])}</span></li>
+<li>{external_link(t, shared["links"]["bot"], links["bot_label"])}<span class="link-note">{e(links["bot_text"])}</span></li>
+</ul>
+</section>
+<section aria-labelledby="form-heading">
+<h2 id="form-heading">{e(f["heading"])}</h2>
+<form class="contact-form" action="{e(limits["action"])}" method="post" accept-charset="utf-8" data-contact
+ data-msg-sending="{e(f["sending"])}"
+ data-msg-success="{e(f["success"])}"
+ data-msg-error="{e(f["error"])}"
+ data-msg-rate="{e(f["error_rate"])}"
+ data-msg-field="{e(f["error_field"])}"
+ data-alt-url="{e(shared["links"]["github"])}"
+ data-alt-label="{e(links["github_label"])}"
+ data-alt-note="{e(t["a11y"]["new_tab"])}">
+<p class="form-note">{e(f["required_note"])}</p>
+<input type="hidden" name="lang" value="{e(lang)}">
+<div class="hp" aria-hidden="true">
+<label for="website">{e(f["honeypot_label"])}</label>
+<input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+</div>
+<div class="field">
+<label for="name">{e(f["name_label"])} {star}</label>
+<input type="text" id="name" name="name" required minlength="{e(limits["name_min"])}" maxlength="{e(limits["name_max"])}" autocomplete="name"
+ aria-describedby="name-hint name-error" data-validate data-min="{e(limits["name_min"])}" data-max="{e(limits["name_max"])}"
+ data-msg-required="{e(f["name_required"])}" data-msg-short="{e(f["name_short"])}" data-msg-long="{e(f["name_long"])}">
+<p class="hint" id="name-hint">{e(f["name_hint"])}</p>
+<p class="field-error" id="name-error" hidden></p>
+</div>
+<div class="field">
+<label for="contact">{e(f["contact_label"])}</label>
+<input type="text" id="contact" name="contact" maxlength="{e(limits["contact_max"])}" autocomplete="off"
+ aria-describedby="contact-hint contact-error" data-validate data-min="0" data-max="{e(limits["contact_max"])}"
+ data-msg-long="{e(f["contact_long"])}">
+<p class="hint" id="contact-hint">{e(f["contact_hint"])}</p>
+<p class="field-error" id="contact-error" hidden></p>
+</div>
+<div class="field">
+<label for="message">{e(f["message_label"])} {star}</label>
+<textarea id="message" name="message" rows="7" required minlength="{e(limits["message_min"])}" maxlength="{e(limits["message_max"])}"
+ aria-describedby="message-hint message-error" data-validate data-min="{e(limits["message_min"])}" data-max="{e(limits["message_max"])}"
+ data-msg-required="{e(f["message_required"])}" data-msg-short="{e(f["message_short"])}" data-msg-long="{e(f["message_long"])}"></textarea>
+<p class="hint" id="message-hint">{e(f["message_hint"])}</p>
+<p class="field-error" id="message-error" hidden></p>
+</div>
+<button type="submit" class="button">{e(f["submit"])}</button>
+<div class="form-status" id="form-status" role="status" aria-live="polite"></div>
+</form>
+</section>
+<section id="privacy" class="card privacy" aria-labelledby="privacy-heading">
+<h2 id="privacy-heading">{e(c["privacy"]["heading"])}</h2>
+<ul>
+{privacy}</ul>
+</section>
+"""
+
+
+RENDERERS = {
+    "home": render_home,
+    "education": render_education,
+    "projects": render_projects,
+    "activities": render_activities,
+    "contact": render_contact,
+}
+
+
+def render_gateway(shared, texts):
+    """Root page: main.js redirects; the links work without JavaScript."""
+    default = shared["default_lang"]
+    t = texts[default]
+    codes = ",".join(l["code"] for l in shared["languages"])
+    choices = ""
+    noscript = ""
+    for l in shared["languages"]:
+        code = l["code"]
+        choices += (
+            f'<li lang="{e(code)}"><span class="choice-label">{e(texts[code]["gateway"]["choose"])}</span> '
+            f'<a class="button button-secondary" href="{e(page_url(shared, code, "home"))}" '
+            f'hreflang="{e(code)}" data-lang="{e(code)}">{e(l["name"])}</a></li>\n'
+        )
+        noscript += f'<p lang="{e(code)}">{e(texts[code]["gateway"]["noscript"])}</p>\n'
+    alternates = "".join(
+        f'<link rel="alternate" hreflang="{e(l["code"])}" '
+        f'href="{e(absolute(shared, page_url(shared, l["code"], "home")))}">\n'
+        for l in shared["languages"]
+    )
+    return (
+        head(default, t["gateway"]["title"], t["gateway"]["description"],
+             f' data-gateway data-langs="{e(codes)}" data-default="{e(default)}"')
+        + alternates
+        + head_assets()
+        + f"""<body class="plain-page">
+<main id="main" class="container">
+<img class="avatar" src="{AVATAR_URL}" width="96" height="96" alt="{e(t["site"]["monogram_alt"])}">
+<h1>{e(t["site"]["name"])}</h1>
+<ul class="choices">
+{choices}</ul>
+<noscript>
+{noscript}</noscript>
+</main>
+</body>
+</html>
+"""
+    )
+
+
+def render_404(shared, texts):
+    """One error page for all languages; every URL is root-relative."""
+    default = shared["default_lang"]
+    t = texts[default]
+    blocks = ""
+    for l in shared["languages"]:
+        code = l["code"]
+        nf = texts[code]["notfound"]
+        blocks += f"""<section class="card" lang="{e(code)}">
+<h2>{e(nf["heading"])}</h2>
+<p>{e(nf["text"])}</p>
+<p><a href="{e(page_url(shared, code, "home"))}" hreflang="{e(code)}" data-lang="{e(code)}">{e(nf["home"])}</a></p>
+</section>
+"""
+    return (
+        head(default, t["notfound"]["title"], t["notfound"]["text"])
+        + '<meta name="robots" content="noindex">\n'
+        + head_assets()
+        + f"""<body class="plain-page">
+<main id="main" class="container">
+<h1>{e(t["notfound"]["code"])}</h1>
+<div class="cards cards-three">
+{blocks}</div>
+</main>
+</body>
+</html>
+"""
+    )
+
+
+# ---------------------------------------------------------------- build
+
+def write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def copy_file(source, target):
+    if not source.is_file():
+        raise BuildError(f"Missing source file: {source}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+
+
+def build():
+    shared, texts = load_content()
+
+    if DIST.exists():
+        shutil.rmtree(DIST)
+    DIST.mkdir()
+
+    count = 0
+    for l in shared["languages"]:
+        lang = l["code"]
+        for page in shared["pages"]:
+            body = RENDERERS[page["id"]](shared, texts[lang], lang)
+            write(DIST / lang / page["file"], layout(shared, texts, lang, page["id"], body))
+            count += 1
+
+    write(DIST / "index.html", render_gateway(shared, texts))
+    write(DIST / "404.html", render_404(shared, texts))
+
+    assets = SRC / "assets"
+    if not assets.is_dir():
+        raise BuildError(f"Missing directory: {assets}")
+    shutil.copytree(assets, DIST / "assets", ignore=shutil.ignore_patterns(".DS_Store"))
+    copy_file(SRC / "contact.php", DIST / "contact.php")
+    copy_file(SRC / "htaccess" / "root.htaccess", DIST / ".htaccess")
+    copy_file(SRC / "htaccess" / "data.htaccess", DIST / "data" / ".htaccess")
+
+    print(f"Built {count} language pages, index.html and 404.html in {DIST}")
+
+
+if __name__ == "__main__":
+    try:
+        build()
+    except BuildError as error:
+        print(f"Build failed: {error}", file=sys.stderr)
+        sys.exit(1)

@@ -1,0 +1,249 @@
+{
+  "site": {
+    "name": "Merey Bakhytzhan",
+    "monogram_alt": "Monogram with the letters MB"
+  },
+  "a11y": {
+    "skip": "Skip to content",
+    "nav_primary": "Main navigation",
+    "nav_language": "Language",
+    "menu": "Menu",
+    "new_tab": "(opens in a new tab)"
+  },
+  "pages": {
+    "home": {
+      "nav": "Home",
+      "title": "Merey Bakhytzhan · Software Engineering student at KBTU",
+      "description": "Personal site of Merey Bakhytzhan, a Software Engineering student at KBTU in Almaty: education, projects, activities and contact."
+    },
+    "education": {
+      "nav": "Education",
+      "title": "Education · Merey Bakhytzhan",
+      "description": "Education of Merey Bakhytzhan: Kazakh-British Technical University, Bereke School and the subjects of the current semester."
+    },
+    "projects": {
+      "nav": "Projects",
+      "title": "Projects · Merey Bakhytzhan",
+      "description": "Projects by Merey Bakhytzhan: a Telegram bot for vacancy search, a campus room availability checker and an anti-procrastination web app."
+    },
+    "activities": {
+      "nav": "Activities",
+      "title": "Activities and plans · Merey Bakhytzhan",
+      "description": "Interests, achievements, extracurricular activities and future plans of Merey Bakhytzhan."
+    },
+    "contact": {
+      "nav": "Contact",
+      "title": "Contact · Merey Bakhytzhan",
+      "description": "How to contact Merey Bakhytzhan: GitHub profile, a contact form and a short privacy statement."
+    }
+  },
+  "home": {
+    "role": "Software Engineering student at KBTU",
+    "intro": "I am a third-year student at Kazakh-British Technical University in Almaty. I build backend services in Python, Telegram bots and AI-assisted tools. This site brings together my studies, projects and plans.",
+    "cta_projects": "See projects",
+    "cta_contact": "Get in touch",
+    "quick_heading": "On this site",
+    "cards": {
+      "education": {
+        "title": "Education",
+        "text": "University, school and the subjects I am taking this semester."
+      },
+      "projects": {
+        "title": "Projects",
+        "text": "A Telegram bot, a course project and a web app, with links."
+      },
+      "activities": {
+        "title": "Activities",
+        "text": "Interests, achievements, volunteering and plans."
+      },
+      "contact": {
+        "title": "Contact",
+        "text": "GitHub, a contact form and the privacy statement."
+      }
+    }
+  },
+  "education": {
+    "heading": "Education",
+    "lead": "Where I study now, where I studied before, and what I am learning this semester.",
+    "university": {
+      "heading": "University",
+      "name": "Kazakh-British Technical University (KBTU)",
+      "city_label": "City",
+      "city": "Almaty",
+      "major_label": "Major",
+      "major": "Software Engineering",
+      "year_label": "Year of study",
+      "year": "3rd year (2026/27 academic year)"
+    },
+    "school": {
+      "heading": "High school",
+      "name": "Bereke School",
+      "city_label": "City",
+      "city": "Almaty",
+      "graduation_label": "Graduation",
+      "graduation": "2024"
+    },
+    "portfolio": {
+      "heading": "Learning portfolio",
+      "intro": "Subjects of the Fall 2026 semester. All of them are in progress, so no results are listed.",
+      "status_label": "Status:",
+      "status": {
+        "in_progress": "In progress",
+        "completed": "Completed"
+      },
+      "subjects": {
+        "se": {
+          "name": "Software Engineering",
+          "text": "Requirements, UML modelling, testing, agile planning and AI-assisted development."
+        },
+        "diffeq": {
+          "name": "Differential Equations",
+          "text": "First- and second-order equations and methods of solving them."
+        },
+        "fee": {
+          "name": "Fundamentals of Electrical Engineering I",
+          "text": "Circuit analysis and laboratory work with measurements."
+        },
+        "ca": {
+          "name": "Computer Architecture",
+          "text": "Processor design, pipelining, memory hierarchy and performance."
+        },
+        "sysadmin": {
+          "name": "System Administration 1",
+          "text": "Linux command line, users and permissions, services and SSH."
+        },
+        "philosophy": {
+          "name": "Philosophy",
+          "text": "A course of the Fall 2026 semester."
+        }
+      }
+    }
+  },
+  "projects": {
+    "heading": "Projects",
+    "lead": "Things I have built. Every link leads to a public page: the running bot or a GitHub repository.",
+    "featured": "Featured project",
+    "items": {
+      "jobfinder": {
+        "name": "Merey Job Finder",
+        "text": "A Telegram bot that searches vacancies on hh.kz by the user's profile: position, skills, city or remote work, salary and experience.",
+        "features": [
+          "Shows a skills-match percentage on every vacancy card, with the skills the user already has and the ones to learn.",
+          "Keeps a list of favourite vacancies.",
+          "Sends a daily digest of new vacancies, without repeats, at a time the user chooses."
+        ],
+        "link": "Open the bot in Telegram"
+      },
+      "smartcampus": {
+        "name": "Smart Campus Room Availability Checker",
+        "text": "A course project that checks whether a campus room can be booked for a time slot: a booking rule in Python plus a web prototype.",
+        "features": [],
+        "link": "Smart Campus repository on GitHub"
+      },
+      "shag": {
+        "name": "«Шаг» (“Step”)",
+        "text": "An anti-procrastination web app that helps to start a task with one small step. The public repository is a sanitised copy prepared for a risk-register assignment.",
+        "features": [],
+        "link": "«Шаг» repository on GitHub"
+      }
+    },
+    "tools": {
+      "heading": "Tools I work with",
+      "intro": "A plain list, without skill levels.",
+      "items": [
+        "Python",
+        "FastAPI",
+        "Django",
+        "PostgreSQL",
+        "Docker",
+        "Git",
+        "REST APIs",
+        "Telegram bots",
+        "LLM APIs"
+      ]
+    }
+  },
+  "activities": {
+    "heading": "Activities and plans",
+    "lead": "What I am interested in outside the timetable and where I am heading.",
+    "interests": {
+      "heading": "Interests",
+      "text": "I do not have one fixed hobby: I pick up whatever is interesting at the moment. Lately that is backend development in Python, Telegram bots and AI-assisted tools."
+    },
+    "achievements": {
+      "heading": "Achievements",
+      "text": "Participation in subject olympiads during my school years."
+    },
+    "extracurricular": {
+      "heading": "Extracurricular activities",
+      "text": "Volunteering at KBTU during my first year."
+    },
+    "plans": {
+      "heading": "Future plans",
+      "text": "I plan to apply to a university programme in a different major, and to keep building practical software projects."
+    }
+  },
+  "contact": {
+    "heading": "Contact",
+    "lead": "Write through the form below or find me on GitHub.",
+    "links": {
+      "heading": "Links",
+      "github_label": "GitHub: merelymerey",
+      "github_text": "Code of my course and personal projects.",
+      "bot_label": "Merey Job Finder in Telegram",
+      "bot_text": "My vacancy-search bot. It is a project demo, not a personal chat."
+    },
+    "form": {
+      "heading": "Send a message",
+      "required_note": "Fields marked with * are required.",
+      "name_label": "Your name",
+      "name_hint": "From 2 to 80 characters.",
+      "contact_label": "How to reply (optional)",
+      "contact_hint": "An e-mail address or a messenger username, up to 120 characters. Leave it empty if no answer is needed.",
+      "message_label": "Message",
+      "message_hint": "From 10 to 2000 characters.",
+      "honeypot_label": "Leave this field empty",
+      "submit": "Send message",
+      "sending": "Sending…",
+      "success": "Thank you, your message has been saved. I will read it soon.",
+      "error": "The message could not be sent and was not saved. Please try again later or reach me through GitHub:",
+      "error_rate": "Too many messages in a short time. Please wait half a minute and try again.",
+      "error_field": "The server did not accept this field. Please check it and try again.",
+      "name_required": "Please enter your name.",
+      "name_short": "The name must be at least 2 characters long.",
+      "name_long": "The name must be no longer than 80 characters.",
+      "contact_long": "The reply contact must be no longer than 120 characters.",
+      "message_required": "Please write a message.",
+      "message_short": "The message must be at least 10 characters long.",
+      "message_long": "The message must be no longer than 2000 characters."
+    },
+    "privacy": {
+      "heading": "Privacy",
+      "items": [
+        "The form collects only what you type: your name, an optional reply contact and your message. The page language and the time of sending are saved together with them.",
+        "I use this only to read your message and to reply. It is not passed to anyone else and is not used for advertising.",
+        "Messages are kept in a file on the hosting that cannot be opened from the web, and I delete them after replying. To have a message removed sooner, ask through the same form.",
+        "To limit spam, the server keeps a hashed record of the sender's network address for a short time. The address itself is not stored.",
+        "The code of this site sets no cookies, has no analytics and loads nothing from third parties. The language choice is remembered only in your own browser and is not sent to the server."
+      ]
+    }
+  },
+  "footer": {
+    "copyright": "© 2026 Merey Bakhytzhan",
+    "github": "GitHub",
+    "privacy": "Privacy"
+  },
+  "gateway": {
+    "title": "Merey Bakhytzhan",
+    "description": "Personal site of Merey Bakhytzhan in Kazakh, Russian and English.",
+    "choose": "Choose a language:",
+    "noscript": "JavaScript is off, so the language was not chosen automatically. Please use the links above."
+  },
+  "notfound": {
+    "title": "Page not found · Merey Bakhytzhan",
+    "code": "404",
+    "heading": "Page not found",
+    "text": "There is no such address on this site.",
+    "home": "Go to the home page"
+  }
+}
