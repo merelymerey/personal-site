@@ -39,7 +39,7 @@
   },
   "home": {
     "role": "Software Engineering student at KBTU",
-    "intro": "I am a third-year student at Kazakh-British Technical University in Almaty. I build backend services in Python, Telegram bots and AI-assisted tools. This site brings together my studies, projects and plans.",
+    "intro": "I am a third-year student at Kazakh-British Technical University in Almaty. I am learning backend development in Python and build Telegram bots and AI-assisted tools. This site brings together my studies, projects and plans.",
     "cta_projects": "See projects",
     "cta_contact": "Get in touch",
     "quick_heading": "On this site",
@@ -172,7 +172,7 @@
     },
     "achievements": {
       "heading": "Achievements",
-      "text": "Participation in subject olympiads during my school years."
+      "text": "Participation in a school olympiad."
     },
     "extracurricular": {
       "heading": "Extracurricular activities",
@@ -223,7 +223,7 @@
         "The form collects only what you type: your name, an optional reply contact and your message. The page language and the time of sending are saved together with them.",
         "I use this only to read your message and to reply. It is not passed to anyone else and is not used for advertising.",
         "Messages are kept in a file on the hosting that cannot be opened from the web, and I delete them after replying. To have a message removed sooner, ask through the same form.",
-        "To limit spam, the server keeps a hashed record of the sender's network address for a short time. The address itself is not stored.",
+        "To limit spam, the server keeps a salted hash of the sender's network address. The hash is used for 30 seconds and is deleted or replaced when the next request reaches the form after that, so when nobody visits it stays in the file longer. The address itself is never stored.",
         "The code of this site sets no cookies, has no analytics and loads nothing from third parties. The language choice is remembered only in your own browser and is not sent to the server."
       ]
     }

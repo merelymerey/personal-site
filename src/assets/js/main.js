@@ -165,7 +165,7 @@
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (submit.disabled) {
+      if (submit.getAttribute('aria-disabled') === 'true') {
         return;
       }
       const firstInvalid = validateAll();
@@ -175,8 +175,9 @@
         return;
       }
 
-      submit.disabled = true;
-      setStatus('', messages.msgSending);
+      /* aria-disabled, not disabled: a disabled button would lose keyboard focus. */
+      submit.setAttribute('aria-disabled', 'true');
+      setStatus('pending', messages.msgSending);
       try {
         const response = await window.fetch(form.action, {
           method: 'POST',
@@ -207,7 +208,7 @@
       } catch (error) {
         setStatus('error', messages.msgError, true);
       } finally {
-        submit.disabled = false;
+        submit.removeAttribute('aria-disabled');
       }
     });
   };

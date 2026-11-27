@@ -267,6 +267,22 @@ def php_texts(source):
     return out
 
 
+def php_function(source, name):
+    """Source text of one top-level function of contact.php."""
+    match = re.search(r"^function " + re.escape(name) + r"\(.*?^\}", source, re.S | re.M)
+    return match.group(0) if match else ""
+
+
+def php_request_code(source):
+    """The part of contact.php that runs for each request (after the function definitions)."""
+    return source.partition("request */")[2]
+
+
+def css_rules(css):
+    """(selector, body) for every innermost rule of a stylesheet without comments."""
+    return [(selector.strip(), body) for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)]
+
+
 def setUpModule():
     result = subprocess.run(
         [sys.executable, "build.py"], cwd=ROOT, capture_output=True, text=True
@@ -481,6 +497,39 @@ class TestInternationalisation(SiteTestCase):
                     self.assertIsInstance(value, str, key)
                     self.assertTrue(value.strip(), f"empty string at {key}")
 
+    def test_nfr08_russian_name_stays_in_the_nominative(self):
+        """NFR-08 (R-01, D-11): in ru.json the undeclined name never follows a word that governs another case."""
+        name = TEXTS["ru"]["site"]["name"]
+        allowed = re.compile(r"(?:^|· |© \d{4} )" + re.escape(name))
+        for key, value in flatten(TEXTS["ru"]).items():
+            if not isinstance(value, str) or name not in value:
+                continue
+            with self.subTest(key=key):
+                self.assertEqual(len(allowed.findall(value)), value.count(name),
+                                 f"name is not at the start of the phrase: {value!r}")
+
+    def test_nfr08_reviewed_wording_is_not_reintroduced(self):
+        """NFR-08 (R-01, R-03, D-12): overstated or awkward phrases removed after the review stay out."""
+        banned = {
+            "en": ("I build backend services", "subject olympiad"),
+            "ru": ("Пишу бэкенд", "инструменты с помощью ИИ", "предметн"),
+            "kk": ("бэкенд, Telegram-боттар және ЖИ көмегімен құралдар жасаймын",
+                   "деңгей бағасынсыз", "пәндік", "Атыңыз", "Ат "),
+        }
+        for lang, phrases in banned.items():
+            flat = flatten(TEXTS[lang])
+            for key, value in flat.items():
+                if not isinstance(value, str):
+                    continue
+                for phrase in phrases:
+                    with self.subTest(lang=lang, key=key, phrase=phrase):
+                        self.assertNotIn(phrase, value)
+        form = TEXTS["kk"]["contact"]["form"]
+        self.assertEqual(form["name_label"], "Есіміңіз")
+        for key in ("name_required", "name_short", "name_long"):
+            with self.subTest(key=key):
+                self.assertRegex(form[key], r"^Есім")
+
     def test_nfr08_files_are_utf8_without_bom_or_mojibake(self):
         """NFR-08 / AC-03: every text file in dist/ and content/ decodes as UTF-8, with no mojibake."""
         files = [p for p in dist_files() if p.suffix in (".html", ".css", ".js", ".php", ".svg", "")]
@@ -680,6 +729,19 @@ class TestResponsive(SiteTestCase):
         for rule in re.findall(r"([^{}]*\.site-nav[^{}]*)\{[^}]*display\s*:\s*none", screen):
             self.assertIn(".js ", rule, "nav hidden without the .js guard")
 
+    def test_nfr01_privacy_box_is_separated_from_the_form(self):
+        """NFR-01 (D-10): the privacy card keeps a top margin, set after .card resets it to 0."""
+        css = self.css()
+        selectors = [selector for selector, _ in css_rules(css)]
+        spaced = [
+            (index, body) for index, (selector, body) in enumerate(css_rules(css))
+            if selector == ".privacy" and re.search(r"margin-top\s*:\s*var\(--space-[5-9]\)", body)
+        ]
+        self.assertTrue(spaced, "no .privacy { margin-top: var(--space-5 or more) } rule")
+        self.assertIn(".card", selectors)
+        self.assertGreater(spaced[0][0], selectors.index(".card"),
+                           ".privacy must come after .card, which sets margin-top: 0")
+
     def test_nfr01_no_fixed_width_above_320px(self):
         """AC-07 / NFR-01: no rule fixes a width above 320 px (static check for horizontal scroll)."""
         css = re.sub(r"@media[^{]*", "@media ", self.css())
@@ -713,11 +775,76 @@ class TestResponsive(SiteTestCase):
 FIELDS = ("name", "contact", "message")
 
 
+HONEYPOT_NAME = "hp_field"
+# Words that browser autofill and password managers match in name, id or autocomplete.
+AUTOFILL_WORDS = re.compile(
+    r"(?i)web|site|url|mail|phone|tel|name|address|street|city|zip|post|company|org|user|login|pass"
+)
+
+
 class TestContactForm(SiteTestCase):
     def form(self, doc):
         forms = doc.find_all("form")
         self.assertEqual(len(forms), 1, "one form on the contact page")
         return forms[0]
+
+    def honeypot(self, form):
+        boxes = form.by_class("hp")
+        self.assertEqual(len(boxes), 1, "one honeypot container (.hp)")
+        inputs = boxes[0].find_all("input")
+        self.assertEqual(len(inputs), 1, "one honeypot field")
+        return inputs[0]
+
+    def test_ac09_honeypot_has_a_neutral_name(self):
+        """AC-09 (R-05, D-03): the honeypot is not named like a field that autofill tools complete."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        for item in self.each_page("contact"):
+            with self.subTest(page=item.label):
+                _, _, _, _, doc = item
+                honeypot = self.honeypot(self.form(doc))
+                self.assertEqual(honeypot.attrs.get("name"), HONEYPOT_NAME)
+                self.assertEqual(honeypot.attrs.get("id"), HONEYPOT_NAME)
+                for attr in ("name", "id"):
+                    self.assertNotRegex(honeypot.attrs[attr], AUTOFILL_WORDS, f"honeypot {attr}")
+                self.assertEqual(honeypot.attrs.get("autocomplete"), "off")
+        self.assertNotIn("$_POST['website']", php)
+        self.assertRegex(
+            php,
+            r"\$_POST\['" + HONEYPOT_NAME + r"'\][^}]*\{\s*respond\(400, 'invalid_request', \$lang\);",
+            "a filled honeypot is still answered with 400",
+        )
+
+    def test_ac10_ac11_status_region_stays_rendered_while_empty(self):
+        """AC-10 / AC-11 (D-01): the live region exists before its text arrives, so the result is announced."""
+        css = strip_css_comments((DIST / "assets" / "css" / "style.css").read_text(encoding="utf-8"))
+        script = (DIST / "assets" / "js" / "main.js").read_text(encoding="utf-8")
+        hide = r"display\s*:\s*none|visibility\s*:\s*hidden"
+        for selector, body in css_rules(css):
+            if ".form-status" not in selector:
+                continue
+            with self.subTest(selector=selector):
+                self.assertNotIn(":empty", selector, "the empty live region must not get its own rule")
+                self.assertNotRegex(body, hide, "the live region must stay in the accessibility tree")
+                if selector == ".form-status":
+                    self.assertNotRegex(body, r"(?<![\w-])(margin|padding)[\w-]*\s*:",
+                                        "spacing belongs to the state classes, the empty region takes no room")
+        # Every text the script shows has a state class, and each state class has spacing.
+        self.assertNotRegex(script, r"setStatus\(''\s*,\s*messages\.", "status text without a state class")
+        kinds = sorted(set(re.findall(r"setStatus\('(\w+)'", script)))
+        self.assertTrue({"success", "error"} <= set(kinds), kinds)
+        for kind in kinds:
+            with self.subTest(state=kind):
+                bodies = [body for selector, body in css_rules(css)
+                          if f".form-status.is-{kind}" in [part.strip() for part in selector.split(",")]]
+                self.assertTrue(any(re.search(r"margin-top\s*:", body) for body in bodies),
+                                f".form-status.is-{kind} needs margin-top")
+        for item in self.each_page("contact"):
+            with self.subTest(page=item.label):
+                _, _, _, _, doc = item
+                status = self.form(doc).by_class("form-status")
+                self.assertEqual(len(status), 1)
+                self.assertNotIn("hidden", status[0].attrs)
+                self.assertNotEqual(status[0].attrs.get("aria-hidden"), "true")
 
     def test_ac09_form_structure(self):
         """AC-09 / AC-10 (FR-07): labelled name, contact and message fields, honeypot, POST, live region."""
@@ -749,8 +876,7 @@ class TestContactForm(SiteTestCase):
                 self.assertIn("required", form.find(name="message").attrs)
                 self.assertNotIn("required", form.find(name="contact").attrs, "reply contact is optional")
 
-                honeypot = form.find("input", name="website")
-                self.assertIsNotNone(honeypot, "honeypot field")
+                honeypot = self.honeypot(form)
                 self.assertEqual(honeypot.attrs.get("tabindex"), "-1")
                 self.assertNotIn("required", honeypot.attrs)
                 self.assertEqual(honeypot.attrs.get("value", ""), "")
@@ -942,6 +1068,44 @@ class TestAccessibility(SiteTestCase):
                 self.assertEqual(button.text(), TEXTS[lang]["a11y"]["menu"], "button needs a text name")
                 # Without JavaScript the button cannot work, so it must start hidden (main.js shows it).
                 self.assertIn("hidden", button.attrs)
+
+    def test_ac12_submit_button_keeps_focus_while_sending(self):
+        """AC-12 (D-09): the submit button is marked aria-disabled, never disabled, while a message is sent."""
+        script = (DIST / "assets" / "js" / "main.js").read_text(encoding="utf-8")
+        css = strip_css_comments((DIST / "assets" / "css" / "style.css").read_text(encoding="utf-8"))
+        self.assertNotRegex(script, r"\.disabled\b", "a disabled button loses keyboard focus")
+        self.assertRegex(script, r"submit\.setAttribute\('aria-disabled', 'true'\)")
+        self.assertRegex(script, r"submit\.getAttribute\('aria-disabled'\) === 'true'\)\s*\{\s*return;",
+                         "a second submit must be ignored while sending")
+        self.assertRegex(script, r"finally\s*\{\s*submit\.removeAttribute\('aria-disabled'\)")
+        selectors = [part.strip() for selector, _ in css_rules(css) for part in selector.split(",")]
+        self.assertIn('.button[aria-disabled="true"]', selectors, "aria-disabled needs the disabled look")
+        for item in self.each_page("contact"):
+            with self.subTest(page=item.label):
+                _, _, _, _, doc = item
+                for button in doc.find_all("button", type="submit"):
+                    self.assertNotIn("disabled", button.attrs)
+
+    def test_nfr03_language_switch_name_starts_with_visible_label(self):
+        """NFR-03 (WCAG 2.5.3, D-02): each language link is named by its visible label, then the language name."""
+        for item in self.each_page():
+            with self.subTest(page=item.label):
+                _, _, _, _, doc = item
+                switch = [nav for nav in doc.find_all("nav") if "lang-switch" in nav.classes()][0]
+                links = switch.find_all("a")
+                self.assertEqual(len(links), len(SHARED["languages"]))
+                for link, language in zip(links, SHARED["languages"]):
+                    hidden = [n for n in link.iter() if n.attrs.get("aria-hidden") == "true"]
+                    self.assertEqual(hidden, [], f"{language['label']}: visible label hidden from assistive technology")
+                    self.assertNotIn("aria-label", link.attrs, "the name must come from the link text")
+                    self.assertNotIn("aria-labelledby", link.attrs)
+                    self.assertEqual(link.text(), f"{language['label']} {language['name']}")
+                    visible = [c for c in link.children if isinstance(c, str) and c.strip()]
+                    self.assertEqual([c.strip() for c in visible], [language["label"]],
+                                     "only the short label is visible")
+                    extra = link.by_class("visually-hidden")
+                    self.assertEqual(len(extra), 1)
+                    self.assertEqual(extra[0].text(), language["name"])
 
     def test_ac13_exactly_one_h1_and_heading_order(self):
         """AC-13 / NFR-03: exactly one non-empty h1; heading levels are not skipped."""
@@ -1141,6 +1305,30 @@ class TestPrivacy(SiteTestCase):
                 self.assertIn((DIST / lang / "contact.html", "privacy"), footer_targets,
                               "footer link to the privacy statement")
 
+    def test_ac14_address_hash_statement_matches_the_handler(self):
+        """AC-14 (D-08): expired address hashes are pruned on every request, and the statement says so plainly."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        request = php_request_code(php)
+        prune = request.find("prune_rate_file($dataDir, $now);")
+        method = request.find("$method !== 'POST'")
+        self.assertGreaterEqual(prune, 0, "contact.php must prune the rate-limit file on every request")
+        self.assertGreater(method, prune, "pruning must run before any request is turned away")
+        reader = php_function(php, "rate_read")
+        self.assertRegex(reader, r"\$now - \$time < RATE_SECONDS", "expired entries are dropped")
+        self.assertRegex(reader, r"if \(\$hits === \[\]\) \{[^}]*random_bytes\(",
+                         "a fresh salt when no live entry remains")
+        pruner = php_function(php, "prune_rate_file")
+        self.assertRegex(pruner, r"(?s)rate_read\(.*rate_write\(", "the pruned list must be written back")
+        self.assertIn("hash('sha256'", php)
+        seconds = php_int_constants(php)["RATE_SECONDS"]
+        vague = {"en": ("short time",), "ru": ("недолго", "короткое время"), "kk": ("қысқа уақыт",)}
+        for lang in LANGS:
+            with self.subTest(lang=lang):
+                item = TEXTS[lang]["contact"]["privacy"]["items"][3]
+                self.assertIn(str(seconds), re.findall(r"\d+", item), "the statement must name the real period")
+                for phrase in vague[lang]:
+                    self.assertNotIn(phrase, item.lower())
+
     def test_ac14_no_private_identifiers_in_dist(self):
         """AC-14 / NFR-04 (R-02): no e-mail address, phone number or student ID anywhere in dist/."""
         for path in dist_files():
@@ -1252,7 +1440,7 @@ class TestSecurity(SiteTestCase):
         php = (DIST / "contact.php").read_text(encoding="utf-8")
         self.assertIn("declare(strict_types=1);", php)
         self.assertRegex(php, r"\$method !== 'POST'")
-        self.assertRegex(php, r"\$_POST\['website'\]")
+        self.assertRegex(php, r"\$_POST\['" + HONEYPOT_NAME + r"'\]")
         for check in (
             r"text_length\(\$name\) < NAME_MIN", r"text_length\(\$name\) > NAME_MAX",
             r"text_length\(\$contact\) > CONTACT_MAX",
@@ -1263,6 +1451,51 @@ class TestSecurity(SiteTestCase):
         self.assertRegex(php, r"RATE_SECONDS")
         self.assertNotRegex(php, r"\b(eval|exec|system|shell_exec|passthru|unserialize|include|require)\s*\(")
         self.assertNotRegex(php, r"echo\s+\$_(POST|GET|REQUEST|SERVER)")
+
+    def test_nfr05_rate_hit_is_recorded_only_after_a_successful_store(self):
+        """NFR-05 (R-05, D-04): a failed store does not block the retry; the message file is capped at 1 MB."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        request = php_request_code(php)
+        record = "$state['hits'][$key] = $now;"
+        self.assertEqual(php.count(record), 1, "exactly one place records a hit")
+        store = re.search(r"if \(!store_message\(\$dataDir, \$record\)\) \{[^}]*respond\(500, 'storage_failed'", request)
+        self.assertIsNotNone(store, "a failed store answers 500 storage_failed")
+        self.assertGreater(request.find(record), store.end(), "the hit must be recorded after store_message()")
+        self.assertNotRegex(php_function(php, "rate_read"), r"\$hits\[\$key\]\s*=")
+        self.assertEqual(php_int_constants(php).get("MAX_STORE_BYTES"), 1024 * 1024)
+        self.assertRegex(php_function(php, "store_message"),
+                         r"\$size > MAX_STORE_BYTES\) \{\s*return false;", "refuse when the file is over 1 MB")
+
+    def test_nfr05_cross_site_posts_are_rejected(self):
+        """NFR-05 (D-05): a POST whose Origin host differs from the Host header is answered with 400."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        check = php_function(php, "cross_site_request")
+        self.assertIn("$_SERVER['HTTP_ORIGIN']", check)
+        self.assertIn("$_SERVER['HTTP_HOST']", check)
+        self.assertIn("PHP_URL_HOST", check)
+        self.assertRegex(check, r"if \(\$origin === ''\) \{\s*return false;", "requests without Origin still work")
+        request = php_request_code(php)
+        match = re.search(r"if \(cross_site_request\(\)\) \{\s*respond\(400, 'invalid_request', \$lang\);", request)
+        self.assertIsNotNone(match, "cross-site posts must get 400")
+        self.assertLess(match.start(), request.find("store_message("))
+
+    def test_nfr05_php_errors_are_not_displayed(self):
+        """NFR-05 (D-06): contact.php switches display_errors off before anything else runs."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        code = re.sub(r"/\*.*?\*/|//[^\n]*", "", php, flags=re.S)
+        self.assertRegex(code, r"declare\(strict_types=1\);\s*ini_set\('display_errors', '0'\);")
+
+    def test_nfr05_format_characters_are_stripped_before_measuring(self):
+        """NFR-05 (D-07): clean_field removes Unicode format characters, so invisible text cannot pass the limits."""
+        php = (DIST / "contact.php").read_text(encoding="utf-8")
+        cleaner = php_function(php, "clean_field")
+        self.assertRegex(cleaner, r"preg_replace\('/\\p\{Cf\}\+/u', '', \$value\)")
+        request = php_request_code(php)
+        for field in FIELDS:
+            with self.subTest(field=field):
+                cleaned = request.find(f"${field} = clean_field(")
+                measured = request.find(f"text_length(${field})")
+                self.assertTrue(0 <= cleaned < measured, "length is measured on the cleaned value")
 
     def test_nfr05_no_secrets_in_repository(self):
         """NFR-05 (R-07): no file in the repository (except .git and dist) matches a secret pattern."""

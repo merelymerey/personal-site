@@ -2,8 +2,9 @@
 /**
  * Contact form handler: the only dynamic file on the site (FR-07, NFR-05).
  *
- * POST only. Validates on the server, rate-limits by a salted hash of the
- * client address, and appends one JSON line to data/messages.jsonl.
+ * POST only, same site only. Validates on the server, rate-limits by a salted
+ * hash of the client address, and appends one JSON line to data/messages.jsonl
+ * (up to MAX_STORE_BYTES). Every request also prunes expired rate-limit entries.
  * No cookies, no sessions, no database, no mail, no secrets.
  *
  * Answers with JSON {ok, error} when the request has "Accept: application/json",
@@ -12,10 +13,13 @@
 
 declare(strict_types=1);
 
+ini_set('display_errors', '0');
+
 const LANGS = ['kk', 'ru', 'en'];
 const DEFAULT_LANG = 'en';
 const RATE_SECONDS = 30;
 const MAX_BODY_BYTES = 32768;
+const MAX_STORE_BYTES = 1048576;
 const NAME_MIN = 2;
 const NAME_MAX = 80;
 const CONTACT_MAX = 120;
@@ -49,7 +53,7 @@ const TEXT = [
         'title_ok' => 'Хабарлама жіберілді',
         'title_fail' => 'Хабарлама жіберілмеді',
         'ok' => 'Рақмет, хабарламаңыз сақталды. Жақын арада оқимын.',
-        'invalid' => 'Форманы тексеріңіз: ат 2-ден 80 таңбаға дейін, жауап беруге арналған байланыс 120 таңбаға дейін, хабарлама 10-нан 2000 таңбаға дейін болуы керек.',
+        'invalid' => 'Форманы тексеріңіз: есім 2-ден 80 таңбаға дейін, жауап беруге арналған байланыс 120 таңбаға дейін, хабарлама 10-нан 2000 таңбаға дейін болуы керек.',
         'rate' => 'Қысқа уақыт ішінде тым көп хабарлама жіберілді. Жарты минут күтіп, қайталап көріңіз.',
         'method' => 'Бұл мекенжай тек байланыс формасынан жіберілген хабарламаларды қабылдайды.',
         'server' => 'Хабарлама жіберілмеді және сақталмады. Кейінірек қайталап көріңіз немесе маған GitHub арқылы жазыңыз:',
@@ -71,8 +75,8 @@ function text_length(string $value): int
 }
 
 /**
- * Returns the trimmed, normalised field value, or null when the input is not
- * a valid UTF-8 string.
+ * Returns the trimmed, normalised field value without control and format
+ * characters, or null when the input is not a valid UTF-8 string.
  */
 function clean_field($value, bool $multiline): ?string
 {
@@ -84,6 +88,11 @@ function clean_field($value, bool $multiline): ?string
         $value = preg_replace('/[^\P{Cc}\n\t]+/u', '', $value);
     } else {
         $value = preg_replace('/\p{Cc}+/u', ' ', $value);
+    }
+    if (is_string($value)) {
+        // Format characters (zero-width spaces, direction overrides) are invisible
+        // and must not count towards the length limits.
+        $value = preg_replace('/\p{Cf}+/u', '', $value);
     }
     if (!is_string($value)) {
         return null;
@@ -171,13 +180,15 @@ function ensure_data_dir(string $dir): bool
     return is_writable($dir);
 }
 
-/**
- * One accepted request per client address per RATE_SECONDS.
- * The address is stored only as a salted SHA-256 hash; the salt is random,
- * created on the host on first use, and old entries are dropped on every call.
- * Returns true when limited, false when allowed, null when the file cannot be used.
+/*
+ * Rate limit: one stored message per client address per RATE_SECONDS.
+ * data/ratelimit.json holds a random salt and, for each recent sender, a salted
+ * SHA-256 hash of the address with the time of the stored message. The address
+ * itself is never written.
  */
-function rate_limited(string $dir, int $now): ?bool
+
+/** Opens the rate-limit file under an exclusive lock. Returns the handle, or null. */
+function rate_open(string $dir)
 {
     $handle = @fopen($dir . '/ratelimit.json', 'c+');
     if ($handle === false) {
@@ -187,51 +198,94 @@ function rate_limited(string $dir, int $now): ?bool
         fclose($handle);
         return null;
     }
+    return $handle;
+}
 
+/**
+ * Reads the state and drops every entry older than RATE_SECONDS. When no live
+ * entry remains the salt is replaced as well, so the file then holds nothing
+ * that relates to an earlier sender.
+ * Returns ['salt' => string, 'hits' => array], or null when no salt can be made.
+ */
+function rate_read($handle, int $now): ?array
+{
+    rewind($handle);
     $raw = stream_get_contents($handle);
     $state = json_decode(is_string($raw) ? $raw : '', true);
+
+    $salt = '';
+    $hits = [];
     if (
-        !is_array($state)
-        || !isset($state['salt'], $state['hits'])
-        || !is_string($state['salt'])
-        || !is_array($state['hits'])
+        is_array($state)
+        && isset($state['salt'], $state['hits'])
+        && is_string($state['salt'])
+        && $state['salt'] !== ''
+        && is_array($state['hits'])
     ) {
+        $salt = $state['salt'];
+        foreach ($state['hits'] as $entry => $time) {
+            if (is_int($time) && $time <= $now && $now - $time < RATE_SECONDS) {
+                $hits[(string) $entry] = $time;
+            }
+        }
+    }
+    if ($hits === []) {
         try {
             $salt = bin2hex(random_bytes(16));
         } catch (Exception $exception) {
-            flock($handle, LOCK_UN);
-            fclose($handle);
             return null;
         }
-        $state = ['salt' => $salt, 'hits' => []];
     }
+    return ['salt' => $salt, 'hits' => $hits];
+}
 
-    $address = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
-    $key = hash('sha256', $state['salt'] . '|' . $address);
-
-    $hits = [];
-    foreach ($state['hits'] as $entry => $time) {
-        if (is_int($time) && $time <= $now && $now - $time < RATE_SECONDS) {
-            $hits[(string) $entry] = $time;
-        }
-    }
-    $limited = isset($hits[$key]);
-    if (!$limited) {
-        $hits[$key] = $now;
-    }
-
-    $json = json_encode(['salt' => $state['salt'], 'hits' => (object) $hits]);
+/** Replaces the content of the locked rate-limit file with $state. */
+function rate_write($handle, array $state): bool
+{
+    $json = json_encode(['salt' => $state['salt'], 'hits' => (object) $state['hits']]);
     $written = is_string($json)
         && ftruncate($handle, 0)
         && rewind($handle)
         && fwrite($handle, $json) === strlen($json);
     fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-
-    return $written ? $limited : null;
+    return $written;
 }
 
+function rate_close($handle): void
+{
+    flock($handle, LOCK_UN);
+    fclose($handle);
+}
+
+/** The salted hash that stands for the client address in the rate-limit file. */
+function rate_key(string $salt): string
+{
+    $address = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+    return hash('sha256', $salt . '|' . $address);
+}
+
+/**
+ * Runs on every request, whatever its method or content: removes expired
+ * entries from the rate-limit file, and leaves an empty list with a fresh salt
+ * when none is live. Does nothing before the first message has created the file.
+ */
+function prune_rate_file(string $dir, int $now): void
+{
+    if (!is_file($dir . '/ratelimit.json')) {
+        return;
+    }
+    $handle = rate_open($dir);
+    if ($handle === null) {
+        return;
+    }
+    $state = rate_read($handle, $now);
+    if ($state !== null) {
+        rate_write($handle, $state);
+    }
+    rate_close($handle);
+}
+
+/** Appends one message. Refuses when the file has grown past MAX_STORE_BYTES. */
 function store_message(string $dir, array $record): bool
 {
     $line = json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -239,8 +293,36 @@ function store_message(string $dir, array $record): bool
         return false;
     }
     $line .= "\n";
-    $bytes = @file_put_contents($dir . '/messages.jsonl', $line, FILE_APPEND | LOCK_EX);
+    $file = $dir . '/messages.jsonl';
+    clearstatcache(true, $file);
+    if (is_file($file)) {
+        $size = @filesize($file);
+        if ($size === false || $size > MAX_STORE_BYTES) {
+            return false;
+        }
+    }
+    $bytes = @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
     return $bytes === strlen($line);
+}
+
+/**
+ * True when the browser says the request comes from another site: an Origin
+ * header is present and its host is not the host this script is served on.
+ * Requests without an Origin header are not judged here.
+ */
+function cross_site_request(): bool
+{
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+    if ($origin === '') {
+        return false;
+    }
+    $originHost = parse_url($origin, PHP_URL_HOST);
+    $host = isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '';
+    $host = preg_replace('/:\d+$/', '', $host);
+    if (!is_string($originHost) || !is_string($host) || $host === '') {
+        return true;
+    }
+    return strtolower($originHost) !== strtolower($host);
 }
 
 /* ------------------------------------------------------------------ request */
@@ -250,10 +332,19 @@ if (isset($_POST['lang']) && is_string($_POST['lang']) && in_array($_POST['lang'
     $lang = $_POST['lang'];
 }
 
+// The statement on the contact page depends on this running for every request.
+$now = time();
+$dataDir = __DIR__ . '/data';
+prune_rate_file($dataDir, $now);
+
 $method = isset($_SERVER['REQUEST_METHOD']) ? (string) $_SERVER['REQUEST_METHOD'] : '';
 if ($method !== 'POST') {
     header('Allow: POST');
     respond(405, 'method_not_allowed', $lang);
+}
+
+if (cross_site_request()) {
+    respond(400, 'invalid_request', $lang);
 }
 
 $bodyBytes = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
@@ -262,7 +353,7 @@ if ($bodyBytes > MAX_BODY_BYTES) {
 }
 
 // Honeypot: real visitors never see or fill this field.
-$honeypot = isset($_POST['website']) ? $_POST['website'] : '';
+$honeypot = isset($_POST['hp_field']) ? $_POST['hp_field'] : '';
 if (!is_string($honeypot) || $honeypot !== '') {
     respond(400, 'invalid_request', $lang);
 }
@@ -281,17 +372,24 @@ if ($message === null || text_length($message) < MESSAGE_MIN || text_length($mes
     respond(400, 'invalid_message', $lang);
 }
 
-$dataDir = __DIR__ . '/data';
 if (!ensure_data_dir($dataDir)) {
     respond(500, 'storage_failed', $lang);
 }
 
-$now = time();
-$limited = rate_limited($dataDir, $now);
-if ($limited === null) {
+// The lock is held from the check until the hit is recorded, so two requests
+// from one address cannot both pass.
+$handle = rate_open($dataDir);
+if ($handle === null) {
     respond(500, 'storage_failed', $lang);
 }
-if ($limited) {
+$state = rate_read($handle, $now);
+if ($state === null) {
+    rate_close($handle);
+    respond(500, 'storage_failed', $lang);
+}
+$key = rate_key($state['salt']);
+if (isset($state['hits'][$key])) {
+    rate_close($handle);
     header('Retry-After: ' . RATE_SECONDS);
     respond(429, 'rate_limited', $lang);
 }
@@ -304,7 +402,13 @@ $record = [
     'message' => $message,
 ];
 if (!store_message($dataDir, $record)) {
+    rate_close($handle);
     respond(500, 'storage_failed', $lang);
 }
+
+// Only a stored message counts against the sender.
+$state['hits'][$key] = $now;
+rate_write($handle, $state);
+rate_close($handle);
 
 respond(200, null, $lang);

@@ -178,8 +178,7 @@ def layout(shared, texts, lang, page_id, body):
         lang_items += (
             f'<li><a href="{e(page_url(shared, l["code"], page_id))}" lang="{e(l["code"])}" '
             f'hreflang="{e(l["code"])}" data-lang="{e(l["code"])}"{current}>'
-            f'<span aria-hidden="true">{e(l["label"])}</span>'
-            f'<span class="visually-hidden">{e(l["name"])}</span></a></li>\n'
+            f'{e(l["label"])}<span class="visually-hidden"> {e(l["name"])}</span></a></li>\n'
         )
 
     return (
@@ -377,8 +376,8 @@ def render_contact(shared, t, lang):
 <p class="form-note">{e(f["required_note"])}</p>
 <input type="hidden" name="lang" value="{e(lang)}">
 <div class="hp" aria-hidden="true">
-<label for="website">{e(f["honeypot_label"])}</label>
-<input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+<label for="hp_field">{e(f["honeypot_label"])}</label>
+<input type="text" id="hp_field" name="hp_field" tabindex="-1" autocomplete="off">
 </div>
 <div class="field">
 <label for="name">{e(f["name_label"])} {star}</label>

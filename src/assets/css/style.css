@@ -352,7 +352,8 @@ img {
   color: var(--accent-strong);
 }
 
-.button[disabled] {
+.button[disabled],
+.button[aria-disabled="true"] {
   opacity: 0.65;
   cursor: progress;
 }
@@ -623,13 +624,16 @@ img {
   overflow: hidden;
 }
 
+/* The live region stays rendered while empty so that its text is announced;
+   it takes no room until a state class is set. */
 .form-status {
-  margin-top: var(--space-4);
   font-weight: 600;
 }
 
-.form-status:empty {
-  display: none;
+.form-status.is-pending,
+.form-status.is-success,
+.form-status.is-error {
+  margin-top: var(--space-4);
 }
 
 .form-status.is-success,
@@ -647,6 +651,11 @@ img {
 
 .form-status.is-error {
   color: var(--error);
+}
+
+/* .card resets the section margin; the privacy box follows the form directly. */
+.privacy {
+  margin-top: var(--space-6);
 }
 
 .privacy ul {
