@@ -39,7 +39,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 | FR-07 | The contact page provides professional links and a contact form with client-side and server-side validation. | Must |
 | FR-08 | The contact page contains a short privacy statement. | Must |
 | FR-09 | Every page offers a Kazakh / Russian / English switch that opens the same page in the chosen language and remembers the choice. | Must |
-| FR-10 | Every page has the same primary navigation, with the current page marked, and a skip-to-content link. | Must |
+| FR-10 | Every content page (the 15 language pages) has the same primary navigation, with the current page marked, and a skip-to-content link. | Must |
 | FR-11 | The root URL sends the visitor to a language version (saved choice, then browser language, then English) and offers manual links when JavaScript is off. | Should |
 | FR-12 | Unknown URLs show a 404 page with links back to each language's home page. | Should |
 
@@ -48,7 +48,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 | ID | Category | Requirement |
 |---|---|---|
 | NFR-01 | Responsiveness | All pages are usable from 320 px to 1920 px wide with no horizontal scrolling. |
-| NFR-02 | Usability | Any page is reachable from any other page in one click; language can be switched in one click. |
+| NFR-02 | Usability | Any content page is reachable from any other in one click on wide screens and in two taps (menu, link) below 760 px; language can be switched in one click at every width. |
 | NFR-03 | Accessibility | Pages meet WCAG 2.1 AA for the checks we run: landmarks, one `h1`, labelled controls, alternative text, visible focus, keyboard operation, contrast of at least 4.5:1, reduced-motion support. |
 | NFR-04 | Privacy | No cookies, analytics or third-party requests. No private identifiers, phone number, address, grades or documents are published. |
 | NFR-05 | Security | Served over HTTPS. All form input validated on the server. No secrets in the repository. Stored messages are not web-accessible. |
@@ -83,7 +83,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 
 **US-07** As a keyboard or screen-reader user, I want accessible navigation so that I can use the whole site.
 - **AC-12** Given I use only the keyboard, then I can reach a skip link first, every interactive element has a visible focus, and the menu can be opened and closed.
-- **AC-13** Given any page, then it has landmarks, exactly one `h1`, labelled form controls and alternative text for meaningful images.
+- **AC-13** Given any content page, then it has landmarks, exactly one `h1`, labelled form controls and alternative text for meaningful images.
 
 **US-08** As a privacy-conscious visitor, I want to know what happens to my data.
 - **AC-14** Given the contact page in any language, then a privacy statement explains what is collected and why, and the site sets no cookies and makes no third-party requests.
@@ -126,3 +126,10 @@ No checkpoint had taken place when this baseline was written. Each row is filled
 | #03 | Prototype review | pending | | |
 | #04 | Quality review | pending | | |
 | #05 | Launch review | pending | | |
+
+## 9. Change log of this baseline
+
+| Date | Change | Reason |
+|---|---|---|
+| 2026-11-27 | FR-10 and AC-13 narrowed from "every page" to "every content page" | Code review finding 14: the language gateway, 404 page and form result page are deliberately minimal single-purpose pages |
+| 2026-11-27 | NFR-02 reworded to allow two taps on small screens | Code review finding 15: the collapsed mobile menu makes "one click" untrue below 760 px |

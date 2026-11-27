@@ -64,7 +64,7 @@ Chosen: build 15 HTML files from JSON. Alternative: one set of pages with JavaSc
 Gain: correct `lang`, title and metadata without JavaScript; shareable language URLs; better for screen readers and search engines. Cost: a build step, and three times as many files to upload.
 
 **DD-2. No CSS framework or web fonts.**
-Chosen: about 400 lines of hand-written CSS with custom properties and the system font stack. Alternative: Bootstrap or Tailwind, both allowed by the brief.
+Chosen: one hand-written stylesheet (under 900 lines) with custom properties and the system font stack. Alternative: Bootstrap or Tailwind, both allowed by the brief.
 Gain: no third-party requests (NFR-04), small pages (NFR-06), nothing to license, Kazakh letters render from system fonts. Cost: components such as the mobile menu are written and tested by hand, and the look depends slightly on the visitor's platform font.
 
 **DD-3. No authentication.**
