@@ -243,6 +243,31 @@ def absolute(shared, path):
     return shared.get("site_url", "").rstrip("/") + path
 
 
+# Decorative card icons (drawn for this site). Always aria-hidden.
+ICON_PATHS = {
+    "education": '<path d="M3,9 l9,-4 l9,4 l-9,4 z"/><path d="M7,11 v4 c0,1.6 2.4,3 5,3 s5,-1.4 5,-3 v-4"/><path d="M21,9 v5"/>',
+    "projects": '<path d="M8,7 l-5,5 l5,5"/><path d="M16,7 l5,5 l-5,5"/><path d="M13.5,5 l-3,14"/>',
+    "activities": '<path d="M12,3 l2.2,5.6 L20,11 l-5.8,2.4 L12,19 l-2.2,-5.6 L4,11 l5.8,-2.4 z"/>',
+    "contact": '<path d="M4,5 h16 v11 H9 l-5,4 z"/><path d="M8,9 h8"/><path d="M8,12 h5"/>',
+    "interests": '<circle cx="12" cy="12" r="9"/><path d="M15.5,8.5 l-2,5 l-5,2 l2,-5 z"/>',
+    "achievements": '<circle cx="12" cy="14" r="5"/><path d="M9,3 l3,6 l3,-6"/>',
+    "extracurricular": '<path d="M12,20 c-4,-2.6 -7,-5.6 -7,-9.4 c0,-3.6 4.6,-4.8 7,-1.6 c2.4,-3.2 7,-2 7,1.6 c0,3.8 -3,6.8 -7,9.4 z"/>',
+    "plans": '<path d="M5,21 V4"/><path d="M5,4 h11 l-2,4 l2,4 H5"/>',
+    "jobfinder": '<path d="M12,3 v3"/><rect x="4" y="6" width="16" height="12" rx="3"/><path d="M9,11 v2"/><path d="M15,11 v2"/>',
+    "smartcampus": '<path d="M4,21 V6 l8,-3 l8,3 v15"/><path d="M9,21 v-5 h6 v5"/><path d="M8,10 h2"/><path d="M14,10 h2"/>',
+    "shag": '<path d="M4,20 h4 v-4 h4 v-4 h4 V8 h4"/>',
+}
+
+
+def icon_tile(name):
+    return (
+        f'<span class="tile tile-{e(name)}" aria-hidden="true">'
+        '<svg class="tile-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" '
+        'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+        f'{ICON_PATHS[name]}</svg></span>'
+    )
+
+
 def external_link(t, url, label):
     return (
         f'<a href="{e(url)}" target="_blank" rel="noopener noreferrer">'
@@ -355,15 +380,21 @@ def render_home(shared, t, lang):
             continue
         card = h["cards"][page["id"]]
         cards += (
-            f'<li class="card card-link"><h3><a href="{e(page_url(shared, lang, page["id"]))}">'
+            f'<li class="card card-link">{icon_tile(page["id"])}<h3><a href="{e(page_url(shared, lang, page["id"]))}">'
             f'{e(card["title"])}</a></h3><p>{e(card["text"])}</p></li>\n'
         )
+    uni = t["education"]["university"]
+    facts = "".join(f"<li>{e(uni[key])}</li>\n" for key in ("major", "city", "year"))
     return f"""<section class="hero">
+<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
+<span class="hero-glow hero-glow-b" aria-hidden="true"></span>
 <img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
 <div>
 <h1>{e(t["site"]["name"])}</h1>
 <p class="role">{e(h["role"])}</p>
 <p class="lead">{e(h["intro"])}</p>
+<ul class="hero-facts">
+{facts}</ul>
 <p class="actions">
 <a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}</a>
 <a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
@@ -437,7 +468,7 @@ def render_projects(shared, t):
                 + "</ul>\n"
             )
         items += f"""<article class="card project{' project-featured' if featured else ''}" aria-labelledby="project-{e(project["id"])}">
-{badge}<h2 id="project-{e(project["id"])}">{e(text["name"])}</h2>
+{badge}{icon_tile(project["id"])}<h2 id="project-{e(project["id"])}">{e(text["name"])}</h2>
 <p>{e(text["text"])}</p>
 {features}<p>{external_link(t, project["url"], text["link"])}</p>
 </article>
@@ -461,7 +492,7 @@ def render_activities(t):
     sections = ""
     for key in ("interests", "achievements", "extracurricular", "plans"):
         sections += f"""<section class="card" aria-labelledby="{key}-heading">
-<h2 id="{key}-heading">{e(ac[key]["heading"])}</h2>
+{icon_tile(key)}<h2 id="{key}-heading">{e(ac[key]["heading"])}</h2>
 <p>{e(ac[key]["text"])}</p>
 </section>
 """
