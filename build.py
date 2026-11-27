@@ -453,7 +453,7 @@ def band(band_id, heading, lead, body, more="", tint=False):
 
 
 def render_home(shared, t, lang):
-    """Landing page: hero, then one band per section of the site, then a call to action."""
+    """Landing page: hero with a sample bot card, figures, one band per section, questions, call to action."""
     h = t["home"]
     uni = t["education"]["university"]
     facts = "".join(f"<li>{e(uni[key])}</li>\n" for key in ("major", "city", "year"))
@@ -465,44 +465,86 @@ def render_home(shared, t, lang):
             f'{ICON_ARROW}</a></p>\n'
         )
 
+    demo = h["demo"]
+    match = int(shared["demo_match"])
+    segments = "".join(
+        f'<span{" class=\"on\"" if index < round(match / 10) else ""}></span>' for index in range(10)
+    )
+    hero = f"""<section class="band band-hero">
+<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
+<span class="hero-glow hero-glow-b" aria-hidden="true"></span>
+<div class="container hero-grid">
+<div class="hero-copy">
+<div class="eyebrow">
+<img class="avatar" src="{AVATAR_URL}" width="56" height="56" alt="{e(t["site"]["monogram_alt"])}">
+<p class="role">{e(h["role"])}</p>
+</div>
+<h1>{e(t["site"]["name"])}</h1>
+<p class="lead">{e(h["intro"])}</p>
+<p class="actions">
+<a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}{ICON_ARROW}</a>
+<a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
+</p>
+<ul class="hero-facts">
+{facts}</ul>
+</div>
+<figure class="demo">
+<div class="demo-card">
+<p class="demo-title">{e(demo["title"])}</p>
+<p class="demo-place">{e(demo["place"])}</p>
+<p class="demo-match"><span>{e(demo["match"])}</span> <strong>{match}%</strong></p>
+<div class="meter" aria-hidden="true">{segments}</div>
+<dl class="demo-skills">
+<div><dt>{e(demo["have_label"])}</dt><dd>{e(demo["have"])}</dd></div>
+<div><dt>{e(demo["learn_label"])}</dt><dd>{e(demo["learn"])}</dd></div>
+</dl>
+</div>
+<figcaption>{e(demo["caption"])}</figcaption>
+</figure>
+</div>
+</section>
+"""
+    counts = (
+        ("languages", len(shared["languages"])),
+        ("projects", len(shared["projects"])),
+        ("subjects", len(shared["subjects"])),
+    )
+    stats = "".join(
+        f'<li><strong>{count}</strong> <span>{e(h["stats"][key])}</span></li>\n' for key, count in counts
+    )
+    figures = f"""<div class="stats-band">
+<ul class="container stats">
+{stats}</ul>
+</div>
+"""
+    questions = "".join(
+        f"<details>\n<summary>{e(item['q'])}</summary>\n<p>{e(item['a'])}</p>\n</details>\n"
+        for item in h["faq"]["items"]
+    )
     contact = t["contact"]
     cta = f"""<section class="band band-cta" aria-labelledby="contact-band">
+<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
 <div class="container" data-reveal>
 <h2 id="contact-band">{e(contact["form"]["heading"])}</h2>
 <p class="lead">{e(h["cards"]["contact"]["text"])}</p>
 <p class="actions">
-<a class="button" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
+<a class="button" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}{ICON_ARROW}</a>
 <a class="button button-secondary" href="{e(shared["links"]["github"])}" target="_blank" rel="noopener noreferrer">{e(t["footer"]["github"])}{ICON_EXTERNAL}<span class="visually-hidden"> {e(t["a11y"]["new_tab"])}</span></a>
 </p>
 </div>
 </section>
 """
     return (
-        f"""<section class="band band-hero">
-<span class="hero-glow hero-glow-a" aria-hidden="true"></span>
-<span class="hero-glow hero-glow-b" aria-hidden="true"></span>
-<div class="container hero">
-<img class="avatar" src="{AVATAR_URL}" width="120" height="120" alt="{e(t["site"]["monogram_alt"])}">
-<div>
-<h1>{e(t["site"]["name"])}</h1>
-<p class="role">{e(h["role"])}</p>
-<p class="lead">{e(h["intro"])}</p>
-<ul class="hero-facts">
-{facts}</ul>
-<p class="actions">
-<a class="button" href="{e(page_url(shared, lang, "projects"))}">{e(h["cta_projects"])}</a>
-<a class="button button-secondary" href="{e(page_url(shared, lang, "contact"))}">{e(h["cta_contact"])}</a>
-</p>
-</div>
-</div>
-</section>
-"""
+        hero
+        + figures
         + band("projects", t["projects"]["heading"], h["cards"]["projects"]["text"],
                project_cards(shared, t, 3), more("projects"))
         + band("education", t["education"]["heading"], h["cards"]["education"]["text"],
                education_timeline(t, 3), more("education"), tint=True)
         + band("activities", t["activities"]["heading"], h["cards"]["activities"]["text"],
                activity_cards(t, 3, "cards-two"), more("activities"))
+        + band("faq", h["faq"]["heading"], h["faq"]["lead"],
+               f'<div class="faq">\n{questions}</div>\n', tint=True)
         + cta
     )
 

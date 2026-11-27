@@ -5,7 +5,10 @@
 | Page | Block | Content | Source of the facts | KK | RU | EN |
 |---|---|---|---|---|---|---|
 | Home | Hero | Name, role, short introduction | Author | yes | yes | yes |
-| Home | Quick links | Cards linking to the other four pages | Site structure | yes | yes | yes |
+| Home | Sample bot card | An example vacancy card in the format Merey Job Finder shows (illustrative vacancy, labelled as an example) | Format checked in the running bot on 2026-11-27; the vacancy itself is invented and captioned as an example | yes | yes | yes |
+| Home | Figures | Number of site languages, linked projects and current subjects | Counted by the build from `content/shared.json` | yes | yes | yes |
+| Home | Section bands | Projects, education and activities, reusing the detail-page content | Same sources as the detail pages | yes | yes | yes |
+| Home | Questions and answers | Four questions answered from facts already on the site | Author's facts; privacy statement | yes | yes | yes |
 | Education | University | KBTU, Software Engineering, 3rd year | Author | yes | yes | yes |
 | Education | School | Bereke School, Almaty, graduated 2024 | Author | yes | yes | yes |
 | Education | Learning portfolio | Selected subjects with description and status | Author's course list and coursework | yes | yes | yes |
@@ -27,6 +30,7 @@
 | Item | Type | Source | Owner | Licence / permission |
 |---|---|---|---|---|
 | `avatar.svg` | Illustration (monogram avatar) | Drawn in code for this site with Claude Code | Author | Original work, MIT with the repository |
+| Card icons (11) | Inline SVG | Drawn in code for this site | Author | Original work |
 | `favicon.svg` | Icon | Drawn in code for this site | Author | Original work |
 | Navigation and link icons | Inline SVG | Drawn in code for this site | Author | Original work |
 | Fonts | System font stack | Visitor's device | n/a | Nothing is downloaded or redistributed |
@@ -36,6 +40,8 @@
 | Certificates | none | | | No certificates or documents are published |
 
 No photograph, icon set, font file, template or library from a third party is included.
+
+**Design guidance reused.** The landing page follows the structure of a landing-page design guide the author had downloaded earlier as an agent skill (`landing-page-guide-v2`: header, large hero title, primary call to action, figures, media, benefits, questions, final call to action, footer). Only the checklist of ideas was used. Its Next.js and ShadCN code was not, because the host runs static files and PHP only. Its "customer testimonials" and urgency elements were left out because the site has no customers and inventing them would be a false claim.
 
 ## 3. Personal data classification
 

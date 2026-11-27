@@ -59,6 +59,43 @@
         "title": "Contact",
         "text": "GitHub, a contact form and the privacy statement."
       }
+    },
+    "stats": {
+      "languages": "languages on this site",
+      "projects": "projects with public links",
+      "subjects": "subjects this semester"
+    },
+    "demo": {
+      "caption": "Example of a vacancy card from Merey Job Finder",
+      "title": "Python Backend Developer",
+      "place": "Almaty · remote",
+      "match": "Match",
+      "have_label": "Have",
+      "have": "Python, FastAPI, PostgreSQL, Docker",
+      "learn_label": "To learn",
+      "learn": "Redis, Celery, Kafka"
+    },
+    "faq": {
+      "heading": "Questions and answers",
+      "lead": "The essentials, briefly.",
+      "items": [
+        {
+          "q": "What am I studying?",
+          "a": "Software Engineering at KBTU in Almaty; I am in my third year. This semester's subjects are listed on the Education page."
+        },
+        {
+          "q": "What can I build?",
+          "a": "Telegram bots and small web apps in Python. The Projects page has examples with working links."
+        },
+        {
+          "q": "How can you reach me?",
+          "a": "Through the form on the Contact page or my GitHub profile. I do not publish a phone number or a personal mailbox."
+        },
+        {
+          "q": "What happens to a message sent through the form?",
+          "a": "It is saved in a closed file on the hosting, only I read it, and I delete it after replying. Details are in the Privacy section."
+        }
+      ]
     }
   },
   "education": {

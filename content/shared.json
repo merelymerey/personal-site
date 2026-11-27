@@ -2,33 +2,90 @@
   "default_lang": "en",
   "site_url": "",
   "languages": [
-    {"code": "kk", "label": "KK", "name": "Қазақша"},
-    {"code": "ru", "label": "RU", "name": "Русский"},
-    {"code": "en", "label": "EN", "name": "English"}
+    {
+      "code": "kk",
+      "label": "KK",
+      "name": "Қазақша"
+    },
+    {
+      "code": "ru",
+      "label": "RU",
+      "name": "Русский"
+    },
+    {
+      "code": "en",
+      "label": "EN",
+      "name": "English"
+    }
   ],
   "pages": [
-    {"id": "home", "file": "index.html"},
-    {"id": "education", "file": "education.html"},
-    {"id": "projects", "file": "projects.html"},
-    {"id": "activities", "file": "activities.html"},
-    {"id": "contact", "file": "contact.html"}
+    {
+      "id": "home",
+      "file": "index.html"
+    },
+    {
+      "id": "education",
+      "file": "education.html"
+    },
+    {
+      "id": "projects",
+      "file": "projects.html"
+    },
+    {
+      "id": "activities",
+      "file": "activities.html"
+    },
+    {
+      "id": "contact",
+      "file": "contact.html"
+    }
   ],
   "links": {
     "github": "https://github.com/merelymerey",
     "bot": "https://t.me/merey_jobfinder_bot"
   },
   "subjects": [
-    {"id": "se", "status": "in_progress"},
-    {"id": "diffeq", "status": "in_progress"},
-    {"id": "fee", "status": "in_progress"},
-    {"id": "ca", "status": "in_progress"},
-    {"id": "sysadmin", "status": "in_progress"},
-    {"id": "philosophy", "status": "in_progress"}
+    {
+      "id": "se",
+      "status": "in_progress"
+    },
+    {
+      "id": "diffeq",
+      "status": "in_progress"
+    },
+    {
+      "id": "fee",
+      "status": "in_progress"
+    },
+    {
+      "id": "ca",
+      "status": "in_progress"
+    },
+    {
+      "id": "sysadmin",
+      "status": "in_progress"
+    },
+    {
+      "id": "philosophy",
+      "status": "in_progress"
+    }
   ],
   "projects": [
-    {"id": "jobfinder", "url": "https://t.me/merey_jobfinder_bot", "featured": true},
-    {"id": "smartcampus", "url": "https://github.com/merelymerey/smart-campus-a3", "featured": false},
-    {"id": "shag", "url": "https://github.com/merelymerey/shag-a5", "featured": false}
+    {
+      "id": "jobfinder",
+      "url": "https://t.me/merey_jobfinder_bot",
+      "featured": true
+    },
+    {
+      "id": "smartcampus",
+      "url": "https://github.com/merelymerey/smart-campus-a3",
+      "featured": false
+    },
+    {
+      "id": "shag",
+      "url": "https://github.com/merelymerey/shag-a5",
+      "featured": false
+    }
   ],
   "form": {
     "action": "/contact.php",
@@ -38,5 +95,6 @@
     "contact_max": 120,
     "message_min": 10,
     "message_max": 2000
-  }
+  },
+  "demo_match": 43
 }
