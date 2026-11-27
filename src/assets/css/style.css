@@ -1,16 +1,25 @@
 /* Personal site of Merey Bakhytzhan. Hand-written, no framework, no web fonts. */
 
 :root {
-  --bg: #fbfaf7;
+  /* Palette: sky blue and gold on cool paper; deep navy at night. */
+  --bg: #f3f6fb;
   --surface: #ffffff;
-  --text: #1d2327;
-  --muted: #55606a;
-  --border: #d9d6cf;
-  --control-border: #737e86;
-  --accent: #0b5c63;
-  --accent-strong: #08444a;
+  --text: #101a33;
+  --muted: #47536f;
+  --border: #d3dbe9;
+  --control-border: #66728e;
+  --accent: #0a5fa8;
+  --accent-strong: #07467e;
   --on-accent: #ffffff;
-  --accent-soft: #e3f0ef;
+  --accent-soft: #e0edfa;
+  --gold: #fec50c;
+  --hero-from: #0a3d73;
+  --hero-to: #0b6f9d;
+  --hero-text: #ffffff;
+  --hero-muted: #e6f1fa;
+  --hero-ink: #10203f;
+  --shadow: 0 1px 2px rgba(16, 26, 51, 0.06), 0 8px 24px rgba(16, 26, 51, 0.07);
+  --shadow-lift: 0 2px 4px rgba(16, 26, 51, 0.08), 0 14px 32px rgba(16, 26, 51, 0.12);
   --error: #a32020;
   --success: #17603a;
 
@@ -22,23 +31,32 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
-  --radius: 10px;
+  --radius: 14px;
+  --radius-small: 9px;
   --measure: 62rem;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111517;
-    --surface: #1a2023;
-    --text: #e7ecee;
-    --muted: #a7b3ba;
-    --border: #2f383d;
-    --control-border: #7d8a92;
-    --accent: #7fd1c8;
-    --accent-strong: #a5e2db;
-    --on-accent: #0c1214;
-    --accent-soft: #1d3234;
+    --bg: #0a1120;
+    --surface: #121b2e;
+    --text: #e8edf7;
+    --muted: #a6b2ca;
+    --border: #25314a;
+    --control-border: #7d8aa8;
+    --accent: #6fc3f4;
+    --accent-strong: #a3dafa;
+    --on-accent: #06101f;
+    --accent-soft: #15304b;
+    --gold: #fec50c;
+    --hero-from: #0d2748;
+    --hero-to: #0d4a6c;
+    --hero-text: #ffffff;
+    --hero-muted: #dbe9f6;
+    --hero-ink: #10203f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 32px rgba(0, 0, 0, 0.4);
     --error: #ff9a8f;
     --success: #86d9a5;
   }
@@ -724,6 +742,213 @@ img {
   gap: var(--space-2) var(--space-5);
 }
 
+/* ---------------------------------------------------------------- visual identity */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brand::before {
+  content: "";
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Page titles end in a short strip of the horn ornament used in the hero. */
+main > h1::after {
+  content: "";
+  display: block;
+  width: 4.5rem;
+  height: 1.5rem;
+  margin-top: var(--space-2);
+  background: url("../img/ornament.svg") left center / 4.5rem 1.5rem no-repeat;
+}
+
+.card,
+.subject {
+  box-shadow: var(--shadow);
+}
+
+.button,
+.lang-switch a,
+.field input,
+.field textarea {
+  border-radius: var(--radius-small);
+}
+
+/* Hero: the one loud element of the site. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-6) var(--space-5) calc(var(--space-6) + 1.75rem);
+  background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+  border-radius: calc(var(--radius) + 8px);
+  box-shadow: var(--shadow-lift);
+  color: var(--hero-text);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.75rem;
+  background: url("../img/ornament.svg") left bottom / 5.25rem 1.75rem repeat-x;
+  opacity: 0.85;
+}
+
+.hero h1 {
+  font-size: clamp(2.1rem, 1.4rem + 3.6vw, 3.4rem);
+  letter-spacing: -0.025em;
+}
+
+.hero .role {
+  color: var(--gold);
+  letter-spacing: 0.01em;
+}
+
+.hero .lead {
+  color: var(--hero-muted);
+}
+
+.hero .avatar {
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.14);
+}
+
+.hero .button {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--hero-ink);
+}
+
+.hero .button:hover {
+  background: #ffd64d;
+  border-color: #ffd64d;
+  color: var(--hero-ink);
+}
+
+.hero .button-secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.75);
+  color: var(--hero-text);
+}
+
+.hero .button-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #ffffff;
+  color: var(--hero-text);
+}
+
+.hero :focus-visible {
+  outline-color: var(--gold);
+}
+
+/* Quick links: the arrow shows the whole card is a link. */
+.card-link {
+  padding-bottom: calc(var(--space-5) + 1.5rem);
+}
+
+.card-link::after {
+  content: "\2192";
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-4);
+  color: var(--accent);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.card-link h3 {
+  font-size: 1.15rem;
+}
+
+/* Education: university and school on one vertical line, newest first. */
+.timeline {
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.55rem;
+  top: var(--space-5);
+  bottom: var(--space-5);
+  width: 2px;
+  background: linear-gradient(var(--accent), var(--gold));
+  border-radius: 2px;
+}
+
+.timeline .card::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--space-6) + 0.2rem);
+  top: var(--space-5);
+  width: 0.85rem;
+  height: 0.85rem;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+}
+
+.timeline .card:last-child::before {
+  border-color: var(--gold);
+}
+
+.timeline h2 {
+  color: var(--accent);
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timeline .card-name {
+  font-size: 1.2rem;
+}
+
+/* Projects */
+.project-featured {
+  border-left-width: 1px;
+  border-color: var(--border);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, var(--accent), var(--gold)) border-box;
+  border: 2px solid transparent;
+}
+
+.card .badge {
+  background: var(--gold);
+  color: var(--hero-ink);
+}
+
+.project h2 {
+  font-size: 1.4rem;
+}
+
+.tags li {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.site-footer {
+  background: var(--surface);
+}
+
 /* ---------------------------------------------------------------- wide screens */
 
 @media (min-width: 760px) {
@@ -777,10 +1002,16 @@ img {
 
   .hero {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--space-6);
     margin-top: var(--space-5);
+    padding: var(--space-7) var(--space-7) calc(var(--space-7) + 1.75rem);
     text-align: left;
+  }
+
+  .hero .avatar {
+    width: 9rem;
+    height: 9rem;
   }
 
   .hero .lead {
@@ -853,7 +1084,25 @@ img {
   .button,
   .lang-switch a,
   .site-nav a {
-    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease,
+      transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .card-link:hover,
+  .button:hover {
+    transform: translateY(-2px);
+  }
+
+  .card-link:hover {
+    box-shadow: var(--shadow-lift);
+  }
+
+  .card-link::after {
+    transition: transform 0.18s ease;
+  }
+
+  .card-link:hover::after {
+    transform: translateX(4px);
   }
 }
 

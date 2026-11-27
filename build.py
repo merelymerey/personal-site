@@ -394,7 +394,7 @@ def render_education(shared, t):
 """
     return f"""<h1>{e(ed["heading"])}</h1>
 <p class="lead">{e(ed["lead"])}</p>
-<div class="cards cards-two">
+<div class="cards timeline">
 <section class="card" aria-labelledby="university-heading">
 <h2 id="university-heading">{e(uni["heading"])}</h2>
 <p class="card-name">{e(uni["name"])}</p>
