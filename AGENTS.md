@@ -1,0 +1,58 @@
+# AGENTS.md
+
+Instructions for AI coding agents working in this repository.
+
+## Scope
+
+A static, trilingual (Kazakh `kk`, Russian `ru`, English `en`) personal website for Merey Bakhytzhan, built for KBTU Software Engineering TSIS #01 and hosted on InfinityFree. Requirements are in `docs/01-requirements.md`, privacy rules in `docs/02-content-privacy-ethics.md`, design in `docs/03-design.md`. Read them before changing code.
+
+Out of scope: authentication, databases, analytics, cookies, third-party scripts, fonts or CSS frameworks, a fourth language, any server code other than `src/contact.php`.
+
+## Repository map
+
+```
+content/            kk.json, ru.json, en.json (same keys), shared.json (URLs, page list)
+build.py            templates + renderer, Python standard library only
+src/assets/         css/style.css, js/main.js, img/*.svg
+src/contact.php     form handler (the only dynamic file)
+src/htaccess/       root.htaccess and data.htaccess, copied to dist/.htaccess and dist/data/.htaccess
+tests/test_site.py  automated checks on the built site
+dist/               build output, not committed, this is what gets uploaded
+docs/               requirements, privacy, design, diagrams, wireframes, test evidence
+ai/                 saved prompts and responses (AI-use evidence)
+```
+
+## Commands
+
+```
+python3 build.py                      # build dist/
+python3 -m unittest discover tests -v # run automated checks (builds first)
+python3 -m http.server 8000 -d dist   # preview static pages at http://localhost:8000
+```
+
+There are no dependencies to install. Do not add any.
+
+## Conventions
+
+- Every visible string lives in `content/<lang>.json`. Never hard-code visible text in `build.py`, CSS or JS. The three files must have identical keys.
+- Escape all content with `html.escape` when rendering.
+- Semantic HTML: one `h1` per page, landmarks (`header`, `nav`, `main`, `footer`), labelled controls, `alt` on meaningful images, `aria-hidden="true"` on decorative SVG.
+- CSS: custom properties for colours and spacing, mobile-first, no `!important`, animations only inside `@media (prefers-reduced-motion: no-preference)`.
+- JS: plain ES2017, no globals, progressive enhancement. The site must be readable and navigable with JavaScript off.
+- External links: `https` only, `target="_blank"` with `rel="noopener noreferrer"`.
+- Commits: imperative subject, one logical change each, reference requirement IDs where useful (for example `Add contact form validation (FR-07)`).
+
+## Content rules
+
+- Truthful content only. Do not invent awards, grades, employers, skills or dates. If a fact is not in the content files or supplied by the author, leave it out.
+- Never add: phone number, home address, student ID, date of birth, personal e-mail, grades, documents, photographs of people.
+- Russian and Kazakh first-person text must avoid gendered past-tense verbs; use nouns or present tense.
+- No secrets in the repository. The project needs none.
+
+## Acceptance criteria for any change
+
+1. `python3 -m unittest discover tests -v` passes.
+2. Key parity holds across `kk.json`, `ru.json`, `en.json`.
+3. No new third-party request, dependency or cookie.
+4. Pages still work at 360 px and 1280 px and with JavaScript off.
+5. The change traces to a requirement ID in `docs/01-requirements.md`, or the requirement is added first.

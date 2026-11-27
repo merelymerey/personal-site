@@ -1,0 +1,61 @@
+@startuml component
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+package "Repository (source)" {
+  [content/kk.json] as KK
+  [content/ru.json] as RU
+  [content/en.json] as EN
+  [content/shared.json] as SH
+  [build.py\n(templates + renderer)] as BUILD
+  [src/assets\n(style.css, main.js, img)] as ASSETS
+  [src/contact.php\nsrc/.htaccess] as SRV
+  [tests/test_site.py] as TESTS
+}
+
+package "dist/ (generated)" {
+  [/kk/*.html] as DKK
+  [/ru/*.html] as DRU
+  [/en/*.html] as DEN
+  [index.html, 404.html] as ROOT
+  [assets/] as DASSETS
+  [contact.php, .htaccess,\ndata/.htaccess] as DSRV
+}
+
+package "InfinityFree (htdocs/)" {
+  [Static pages over HTTPS] as HOSTED
+  [PHP form handler] as HPHP
+  database "data/messages.jsonl" as MSG
+}
+
+node "Visitor's browser" {
+  [Rendered page] as BROWSER
+  [localStorage: lang] as LS
+}
+
+KK --> BUILD
+RU --> BUILD
+EN --> BUILD
+SH --> BUILD
+BUILD --> DKK
+BUILD --> DRU
+BUILD --> DEN
+BUILD --> ROOT
+ASSETS --> DASSETS : copied
+SRV --> DSRV : copied
+TESTS ..> DKK : checks
+TESTS ..> DRU : checks
+TESTS ..> DEN : checks
+
+DKK --> HOSTED : upload
+DRU --> HOSTED : upload
+DEN --> HOSTED : upload
+ROOT --> HOSTED : upload
+DASSETS --> HOSTED : upload
+DSRV --> HPHP : upload
+
+HOSTED --> BROWSER : HTML, CSS, JS
+BROWSER --> HPHP : POST message
+HPHP --> MSG : append
+BROWSER --> LS : remember language
+@enduml

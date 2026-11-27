@@ -1,0 +1,30 @@
+@startuml sequence-contact
+skinparam shadowing false
+actor Visitor
+participant "contact.html\n+ main.js" as Page
+participant "contact.php" as PHP
+database "data/messages.jsonl\n(closed by .htaccess)" as File
+
+Visitor -> Page : fill in name, contact, message
+Visitor -> Page : submit
+Page -> Page : validate fields
+alt invalid input
+  Page --> Visitor : localised messages,\nfocus first invalid field (AC-09)
+else valid input
+  Page -> PHP : POST /contact.php (fetch, same origin)
+  PHP -> PHP : check method, honeypot,\nlengths, rate limit
+  alt rejected by server
+    PHP --> Page : 400 / 429 + JSON error code
+    Page --> Visitor : localised error (AC-11)
+  else accepted
+    PHP -> File : append one JSON line
+    alt write failed
+      PHP --> Page : 500 + JSON error code
+      Page --> Visitor : localised error with\nGitHub link (AC-11)
+    else stored
+      PHP --> Page : 200 {"ok": true}
+      Page --> Visitor : localised confirmation (AC-10)
+    end
+  end
+end
+@enduml
