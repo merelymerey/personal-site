@@ -84,6 +84,8 @@ Gain: works on the free plan, no credentials in the repository. Cost: the owner 
 | Site code, styles, scripts, illustrations | Written for this project with AI assistance | MIT (see `LICENSE`) |
 | Python standard library (build and tests) | python.org | PSF License, not redistributed |
 | PlantUML (diagram rendering only) | plantuml.com | GPL, development tool, not redistributed |
+| Photograph `kbtu.webp` | Matti Blume, Wikimedia Commons | CC BY-SA 4.0, credited on the pages that show it |
+| Landing-page structure checklist | `landing-page-guide-v2` agent skill downloaded by the author | Ideas only; no code or assets taken |
 | Third-party runtime libraries | none | |
 
 Reuse inside the project: one layout function for all pages, one stylesheet, one content schema for three languages, one test suite parameterised over languages and pages.

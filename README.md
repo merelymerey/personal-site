@@ -61,4 +61,6 @@ AGENTS.md    instructions for AI coding agents
 
 ## Licence
 
-Code, text and illustrations are original work released under the MIT licence (`LICENSE`). No third-party assets or libraries are included.
+Code, text and illustrations are original work released under the MIT licence (`LICENSE`).
+
+One third-party asset is included: `src/assets/img/kbtu.webp`, a cropped and resized copy of "Kazakh-British Technical University, Almaty (P1180218).jpg" by Matti Blume from Wikimedia Commons, licensed CC BY-SA 4.0. That file keeps the CC BY-SA 4.0 licence. No third-party libraries or fonts are included.

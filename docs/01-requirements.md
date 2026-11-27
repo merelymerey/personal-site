@@ -11,7 +11,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 | User goals | Find out in under a minute who the author is, what they study, what they have built, and how to reach them, in the visitor's preferred language and on any device. |
 | Project scope | A static, public, three-language (Kazakh, Russian, English) personal site with five content pages per language, a contact form, a privacy statement and a 404 page, hosted on InfinityFree over HTTPS. |
 | Constraints | Free InfinityFree hosting and subdomain only (PHP available, no Python/Node on the server, no outgoing e-mail on the free plan). No paid tools, hosts, domains or subscriptions. Truthful content only. No private identifiers, home address, phone number, grades or documents. Individual work. Deadline 2026-12-06 23:59. |
-| Exclusions | No authentication or restricted area (see design decision DD-3). No blog, CMS, comments, analytics, advertising, cookies or third-party scripts. No real photograph of the author. No fourth language. |
+| Exclusions | No authentication or restricted area (see design decision DD-3). No blog, CMS, comments, analytics, advertising, cookies or third-party scripts. No photograph of the author or of other identifiable people. No fourth language. |
 
 ## 2. Risks
 
@@ -52,7 +52,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 | NFR-03 | Accessibility | Pages meet WCAG 2.1 AA for the checks we run: landmarks, one `h1`, labelled controls, alternative text, visible focus, keyboard operation, contrast of at least 4.5:1, reduced-motion support. |
 | NFR-04 | Privacy | No cookies, analytics or third-party requests. No private identifiers, phone number, address, grades or documents are published. |
 | NFR-05 | Security | Served over HTTPS. All form input validated on the server. No secrets in the repository. Stored messages are not web-accessible. |
-| NFR-06 | Performance | Each page transfers under 150 KB uncompressed (HTML + CSS + JS + images) and uses no framework or web font download. |
+| NFR-06 | Performance | Each page transfers under 300 KB uncompressed (HTML + CSS + JS + images) and uses no framework or web font download. |
 | NFR-07 | Maintainability | Content lives in per-language JSON files separate from templates and styles; one build command produces the site; automated checks run with one command. |
 | NFR-08 | Internationalisation | UTF-8 everywhere; correct `lang` attribute, title and description per language; the three content files have identical keys. |
 
@@ -133,3 +133,5 @@ No checkpoint had taken place when this baseline was written. Each row is filled
 |---|---|---|
 | 2026-11-27 | FR-10 and AC-13 narrowed from "every page" to "every content page" | Code review finding 14: the language gateway, 404 page and form result page are deliberately minimal single-purpose pages |
 | 2026-11-27 | NFR-02 reworded to allow two taps on small screens | Code review finding 15: the collapsed mobile menu makes "one click" untrue below 760 px |
+| 2026-11-27 | NFR-06 budget raised from 150 KB to 300 KB | The author asked for a photograph of the university building; one compressed WebP image is now part of the home and education pages |
+| 2026-11-27 | Exclusion "no real photograph" narrowed to "no photograph of the author or of other people" | Same request; the building photograph is freely licensed and credited |

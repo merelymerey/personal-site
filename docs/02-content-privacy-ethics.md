@@ -36,10 +36,11 @@
 | Fonts | System font stack | Visitor's device | n/a | Nothing is downloaded or redistributed |
 | Link to GitHub | External link | github.com | GitHub | Plain hyperlink, no logo used |
 | Link to Telegram bot | External link | t.me | Telegram | Plain hyperlink, no logo used |
-| Photographs | none | | | No photographs are published |
+| `kbtu.webp` | Photograph of the KBTU main building (hero background, education section) | Wikimedia Commons, file "Kazakh-British Technical University, Almaty (P1180218).jpg" | Matti Blume | CC BY-SA 4.0. Credited with a link under the photo on the home and education pages. Changes: cropped to 16:9, resized to 1200 px, converted to WebP; darkened by a CSS overlay in the hero. The modified file stays under CC BY-SA 4.0, not MIT. Metadata stripped. People in the frame are distant and not identifiable. |
+| Photographs of the author or other people | none | | | Not published |
 | Certificates | none | | | No certificates or documents are published |
 
-No photograph, icon set, font file, template or library from a third party is included.
+One third-party photograph is included under CC BY-SA 4.0 (row above). No icon set, font file, template or library from a third party is included. A low-resolution picture of the same building that the author had saved from an image search was **not** used, because its author and licence could not be established.
 
 **Design guidance reused.** The landing page follows the structure of a landing-page design guide the author had downloaded earlier as an agent skill (`landing-page-guide-v2`: header, large hero title, primary call to action, figures, media, benefits, questions, final call to action, footer). Only the checklist of ideas was used. Its Next.js and ShadCN code was not, because the host runs static files and PHP only. Its "customer testimonials" and urgency elements were left out because the site has no customers and inventing them would be a false claim.
 

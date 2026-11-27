@@ -288,5 +288,9 @@
     "heading": "Page not found",
     "text": "There is no such address on this site.",
     "home": "Go to the home page"
+  },
+  "photo": {
+    "alt": "Main building of KBTU in Almaty",
+    "credit": "Photo of the KBTU building: Matti Blume, Wikimedia Commons, CC BY-SA 4.0 (cropped)"
   }
 }

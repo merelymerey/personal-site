@@ -24,6 +24,7 @@ CSS_URL = "/assets/css/style.css"
 JS_URL = "/assets/js/main.js"
 FAVICON_URL = "/assets/img/favicon.svg"
 AVATAR_URL = "/assets/img/avatar.svg"
+PHOTO_URL = "/assets/img/kbtu.webp"
 
 # Decorative inline icons (drawn for this site). Always aria-hidden.
 ICON_EXTERNAL = (
@@ -379,6 +380,15 @@ def layout(shared, texts, lang, page_id, body):
 
 # ---------------------------------------------------------------- pages
 
+def campus_photo(shared, t):
+    """Photograph of the university building with its licence credit (CC BY-SA requires both)."""
+    return f"""<figure class="photo">
+<img src="{PHOTO_URL}" width="320" height="180" loading="lazy" alt="{e(t["photo"]["alt"])}">
+<figcaption>{external_link(t, shared["links"]["photo_source"], t["photo"]["credit"])}</figcaption>
+</figure>
+"""
+
+
 def education_timeline(t, level):
     """University and school cards, newest first. Shared by the landing and education pages."""
     ed = t["education"]
@@ -540,7 +550,8 @@ def render_home(shared, t, lang):
         + band("projects", t["projects"]["heading"], h["cards"]["projects"]["text"],
                project_cards(shared, t, 3), more("projects"))
         + band("education", t["education"]["heading"], h["cards"]["education"]["text"],
-               education_timeline(t, 3), more("education"), tint=True)
+               '<div class="edu-split">\n' + campus_photo(shared, t) + education_timeline(t, 3) + "</div>\n",
+               more("education"), tint=True)
         + band("activities", t["activities"]["heading"], h["cards"]["activities"]["text"],
                activity_cards(t, 3, "cards-two"), more("activities"))
         + band("faq", h["faq"]["heading"], h["faq"]["lead"],
@@ -565,7 +576,9 @@ def render_education(shared, t):
 """
     return f"""<h1>{e(ed["heading"])}</h1>
 <p class="lead">{e(ed["lead"])}</p>
-{education_timeline(t, 2)}<section aria-labelledby="portfolio-heading">
+<div class="edu-split">
+{campus_photo(shared, t)}{education_timeline(t, 2)}</div>
+<section aria-labelledby="portfolio-heading">
 <h2 id="portfolio-heading">{e(portfolio["heading"])}</h2>
 <p>{e(portfolio["intro"])}</p>
 <ul class="subjects">
