@@ -2,7 +2,7 @@
 
 A static personal website in Kazakh, Russian and English, built for the KBTU Software Engineering course (TSIS #01, "Vibe-Coded Personal Website") and hosted on InfinityFree.
 
-- **Live site:** see `docs/05-launch.md` (filled in at deployment)
+- **Live site:** https://merey.freedev.app
 - **AI tool used:** Claude Code (model Claude Fable 5.2). Prompts and responses are in `ai/`.
 
 ## What is in the site

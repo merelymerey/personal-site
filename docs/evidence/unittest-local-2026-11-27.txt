@@ -1,0 +1,63 @@
+AC-12 / AC-07: the menu button has aria-expanded and aria-controls pointing to the nav. ... ok
+AC-12 (FR-10): the skip link is the first focusable element and points to <main>. ... ok
+AC-12 (D-09): the submit button is marked aria-disabled, never disabled, while a message is sent. ... ok
+AC-13 / NFR-03: exactly one non-empty h1; heading levels are not skipped. ... ok
+AC-13 / NFR-03: every form control has a label; aria id references point to real elements. ... ok
+AC-13 / NFR-03: every img has alt text; decorative inline SVG is aria-hidden. ... ok
+AC-13 / NFR-03: header, nav, main and footer landmarks; h1 inside main; navs are named. ... ok
+AC-12 / NFR-03: focus outline is never removed from controls; motion only when allowed. ... ok
+NFR-03 (WCAG 2.5.3, D-02): each language link is named by its visible label, then the language name. ... ok
+AC-13 / NFR-03: every tag is closed in order and ids are unique on each page. ... ok
+NFR-07: one build command produces 3 languages x 5 pages plus the root files. ... ok
+AC-06 (R-13): the GitHub link on the no-JavaScript result page opens safely in a new tab, with the note. ... ok
+AC-09, AC-10, AC-11: every message key read by main.js exists on the page, localised. ... ok
+AC-09 / AC-10 (FR-07): labelled name, contact and message fields, honeypot, POST, live region. ... ok
+AC-09 (R-05, D-03): the honeypot is not named like a field that autofill tools complete. ... ok
+AC-09 / NFR-05 (R-03, R-18): page, script, server and prose all take the limits from shared.json. ... ok
+AC-10 / AC-11 (R-03): the no-JavaScript reply takes its languages, link and texts from the content files. ... ok
+AC-10 / AC-11 (D-01): the live region exists before its text arrives, so the result is announced. ... ok
+NFR-05 (R-03): build.py writes PHP strings so that quotes and backslashes cannot end the literal. ... ok
+NFR-05 / NFR-08 (R-03): contact.config.php is generated, complete for three languages and closed to the web. ... ok
+AC-04 (FR-02): the education page shows KBTU, the major, the year and the previous school. ... ok
+AC-05 (FR-03): one entry per subject in shared.json with name, description and status. ... ok
+AC-06 (FR-05): every project in shared.json appears with its name and link. ... ok
+AC-06: every external link is https, target="_blank" and rel contains noopener. ... ok
+AC-06: all URLs configured in shared.json use https. ... ok
+AC-01 (FR-11): the root page shows the name and links to /kk/, /ru/ and /en/. ... ok
+AC-01: each home page has the author's name in h1, a role line, an intro and a language switch. ... ok
+AC-03: Kazakh pages contain Kazakh-specific letters; Russian pages contain Cyrillic text. ... ok
+AC-03 / NFR-08: <html lang> matches the directory and <meta charset="utf-8"> comes first. ... ok
+AC-03 / NFR-08: non-empty title and description from the content file, different per language. ... ok
+NFR-08 (R-01): kk.json, ru.json and en.json have the same key sets and no empty strings. ... ok
+NFR-08 / AC-03: every text file in dist/ and content/ decodes as UTF-8, with no mojibake. ... ok
+NFR-08 (R-01, R-03, D-12): overstated or awkward phrases removed after the review stay out. ... ok
+NFR-08 (R-01, D-11): in ru.json the undeclined name never follows a word that governs another case. ... ok
+AC-02 (FR-09): three links to the same file in /kk/, /ru/, /en/, current language marked. ... ok
+AC-02 / NFR-02: every internal href, src and action resolves to a file (and id) in dist/. ... ok
+NFR-02 (FR-10): primary nav links all five pages of the language; one aria-current="page". ... ok
+AC-15 (FR-12): dist/404.html exists and links to the three language home pages. ... ok
+AC-15: the 404 page is served at any depth, so every URL in it must start with '/'. ... ok
+AC-15: .htaccess declares /404.html as the 404 document. ... ok
+NFR-06: HTML + CSS + JS + referenced images of each page total under the NFR-06 budget. ... ok
+AC-14 (D-08): expired address hashes are pruned on every request, and the statement says so plainly. ... ok
+AC-14 / NFR-04: the script and the form handler set no cookies and call no other host. ... ok
+AC-14 / NFR-05: no inline event handlers, inline scripts or inline styles (CSP default-src 'self'). ... ok
+AC-14 / NFR-04: no http:// or // resources and no script, style, image or form on another origin. ... ok
+NFR-04 (R-02): the content files themselves hold no e-mail, phone number or student ID. ... ok
+AC-14 / NFR-04 (R-02): no e-mail address, phone number or student ID anywhere in dist/. ... ok
+AC-14 (FR-08): each contact page has the privacy section with every statement from the content file. ... ok
+AC-07 / AC-08: mobile-first CSS; a min-width media query hides the menu button and shows the nav. ... ok
+AC-07 / NFR-01: no rule fixes a width above 320 px (static check for horizontal scroll). ... ok
+NFR-01 (D-10): the privacy card keeps a top margin, set after .card resets it to 0. ... ok
+AC-07 / NFR-01: every page has a device-width viewport meta that does not block zoom. ... ok
+NFR-05 (D-05): a POST whose Origin host differs from the Host header is answered with 400. ... ok
+NFR-05 (R-05): dist/data/.htaccess denies all web access to stored messages. ... ok
+NFR-05 (R-05): contact.php is POST-only, checks the honeypot and every limit, escapes output. ... ok
+NFR-05 (D-07): clean_field removes Unicode format characters, so invisible text cannot pass the limits. ... ok
+NFR-05 (R-07): no file in the repository (except .git and dist) matches a secret pattern. ... ok
+NFR-05 (D-06): contact.php switches display_errors off before anything else runs. ... ok
+NFR-05 (R-05, D-04): a failed store does not block the retry; the message file is capped at 1 MB. ... ok
+NFR-05: dist/.htaccess redirects plain HTTP to HTTPS with a permanent redirect. ... ok
+Ran 60 tests in 0.385s
+
+OK

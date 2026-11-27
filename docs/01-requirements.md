@@ -50,7 +50,7 @@ Baseline date: 2026-11-27. Written before any code was generated.
 | NFR-01 | Responsiveness | All pages are usable from 320 px to 1920 px wide with no horizontal scrolling. |
 | NFR-02 | Usability | Any content page is reachable from any other in one click on wide screens and in two taps (menu, link) below 760 px; language can be switched in one click at every width. |
 | NFR-03 | Accessibility | Pages meet WCAG 2.1 AA for the checks we run: landmarks, one `h1`, labelled controls, alternative text, visible focus, keyboard operation, contrast of at least 4.5:1, reduced-motion support. |
-| NFR-04 | Privacy | No cookies, analytics or third-party requests. No private identifiers, phone number, address, grades or documents are published. |
+| NFR-04 | Privacy | The site's own code sets no cookies and makes no analytics or third-party requests (the host adds one technical cookie, disclosed in the privacy statement). No private identifiers, phone number, address, grades or documents are published. |
 | NFR-05 | Security | Served over HTTPS. All form input validated on the server. No secrets in the repository. Stored messages are not web-accessible. |
 | NFR-06 | Performance | Each page transfers under 300 KB uncompressed (HTML + CSS + JS + images) and uses no framework or web font download. |
 | NFR-07 | Maintainability | Content lives in per-language JSON files separate from templates and styles; one build command produces the site; automated checks run with one command. |
@@ -135,3 +135,4 @@ No checkpoint had taken place when this baseline was written. Each row is filled
 | 2026-11-27 | NFR-02 reworded to allow two taps on small screens | Code review finding 15: the collapsed mobile menu makes "one click" untrue below 760 px |
 | 2026-11-27 | NFR-06 budget raised from 150 KB to 300 KB | The author asked for a photograph of the university building; one compressed WebP image is now part of the home and education pages |
 | 2026-11-27 | Exclusion "no real photograph" narrowed to "no photograph of the author or of other people" | Same request; the building photograph is freely licensed and credited |
+| 2026-11-27 | NFR-04 and the privacy statement now name the host's `__test` cookie | Hosted test H-09 found that InfinityFree sets it on every visitor; saying "no cookies" would have been untrue |

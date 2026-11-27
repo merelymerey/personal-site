@@ -1,0 +1,23 @@
+320px kk/index.html: scrollWidth 320, clientWidth 320, horizontal overflow false, menu button shown true
+320px ru/education.html: scrollWidth 320, clientWidth 320, horizontal overflow false, menu button shown true
+320px en/projects.html: scrollWidth 320, clientWidth 320, horizontal overflow false, menu button shown true
+320px kk/activities.html: scrollWidth 320, clientWidth 320, horizontal overflow false, menu button shown true
+320px ru/contact.html: scrollWidth 320, clientWidth 320, horizontal overflow false, menu button shown true
+360px kk/index.html: scrollWidth 360, clientWidth 360, horizontal overflow false, menu button shown true
+360px ru/education.html: scrollWidth 360, clientWidth 360, horizontal overflow false, menu button shown true
+360px en/projects.html: scrollWidth 360, clientWidth 360, horizontal overflow false, menu button shown true
+360px kk/activities.html: scrollWidth 360, clientWidth 360, horizontal overflow false, menu button shown true
+360px ru/contact.html: scrollWidth 360, clientWidth 360, horizontal overflow false, menu button shown true
+768px kk/index.html: scrollWidth 753, clientWidth 753, horizontal overflow false, menu button shown false
+768px ru/education.html: scrollWidth 753, clientWidth 753, horizontal overflow false, menu button shown false
+768px en/projects.html: scrollWidth 753, clientWidth 753, horizontal overflow false, menu button shown false
+768px kk/activities.html: scrollWidth 753, clientWidth 753, horizontal overflow false, menu button shown false
+768px ru/contact.html: scrollWidth 753, clientWidth 753, horizontal overflow false, menu button shown false
+1280px kk/index.html: scrollWidth 1265, clientWidth 1265, horizontal overflow false, menu button shown false
+1280px ru/education.html: scrollWidth 1265, clientWidth 1265, horizontal overflow false, menu button shown false
+1280px en/projects.html: scrollWidth 1265, clientWidth 1265, horizontal overflow false, menu button shown false
+1280px kk/activities.html: scrollWidth 1265, clientWidth 1265, horizontal overflow false, menu button shown false
+1280px ru/contact.html: scrollWidth 1265, clientWidth 1265, horizontal overflow false, menu button shown false
+360px menu: nav before none, after click aria-expanded true display block, after Escape aria-expanded false
+ru/education.html: first focusable: skip-link #main; EN switch href: /en/education.html; current marked: ru
+hosts contacted by kk/contact.html: ["merey.freedev.app"]
